@@ -1,29 +1,62 @@
-import Vue from 'vue'
-import VueRouter from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import Vue from 'vue';
+import Router from 'vue-router';
 
-Vue.use(VueRouter)
-
-const routes = [
-  {
-    path: '/',
-    name: 'home',
-    component: HomeView
-  },
-  {
-    path: '/about',
-    name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
-  }
-]
-
-const router = new VueRouter({
+Vue.use(Router);
+const router = new Router({
   mode: 'history',
-  base: process.env.BASE_URL,
-  routes
-})
-
-export default router
+  routes: [
+    {
+      path: '/',
+      redirect: '/analysis_list',
+      component: () => import('@/components/baseMain'),
+      children: [
+        {
+          path: '/analysis_list',
+          name: 'analysis_list',
+          component: () => import('@/views/analysis_list'),
+          meta: {
+            title: '解析文件',
+            requireAuth: true
+          }
+        },
+        {
+          path: '/todayLinesData',
+          name: 'todayLinesData',
+          component: () => import('@/views/todayLinesData'),
+          meta: {
+            title: '经典台词',
+            requireAuth: true
+          }
+        },
+        {
+          path: '/movie_subtitles',
+          name: 'movie_subtitles',
+          component: () => import('@/views/movie_subtitles'),
+          meta: {
+            title: '电影字幕',
+            requireAuth: true
+          }
+        },
+        {
+          path: '/tv_subtitles',
+          name: 'tv_subtitles',
+          component: () => import('@/views/tv_subtitles'),
+          meta: {
+            title: '电视剧字幕',
+            requireAuth: true
+          }
+        },
+        {
+          path: '/user_info',
+          name: 'user_info',
+          component: () => import('@/views/user_info'),
+          meta: {
+            title: '用户信息列表',
+            requireAuth: true
+          }
+        }
+      ]
+    }
+  ]
+});
+export default router;

@@ -1,0 +1,88 @@
+/*滚动条美化*/
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background-color: #F1F1F1;
+  -webkit-border-radius: 2em;
+  -moz-border-radius: 2em;
+  border-radius: 2em;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #d8d9da;
+  -webkit-border-radius: 2em;
+  -moz-border-radius: 2em;
+  border-radius: 2em;
+}
+
+/*调整头部导航条的下拉框样式*/
+.header_dropdown {
+  margin: 0;
+
+  .ivu-dropdown-menu {
+    .ivu-dropdown-item {
+      margin: 0;
+      line-height: normal;
+      padding: 7px 16px;
+      clear: both;
+      color: #515a6e;
+      font-size: 14px !important;
+      white-space: nowrap;
+      list-style: none;
+      cursor: pointer;
+    }
+  }
+}
+
+
+/*调整侧边栏下拉框的默认样式*/
+.dropdown_box {
+  left: 65px !important;
+  background-color: rgba(70, 76, 91, .9);
+
+  .ivu-dropdown-item {
+    min-width: 130px;
+    padding: 7px 16px;
+    font-size: 14px;
+    color: #fff;
+
+    &:hover {
+      color: #fffefe;
+      background: transparent;
+    }
+  }
+}
+
+/*调整全局懒加载的默认样式*/
+.ivu-spin-fix {
+  background-color: rgba(0, 0, 0, 0.6);
+
+  .demo-spin-icon-load {
+    animation: ani-demo-spin .8s linear infinite;
+  }
+
+  @keyframes ani-demo-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    50% {
+      transform: rotate(180deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+.ivu-modal-footer {
+  border-top: none;
+  padding: 10px 0 20px 0;
+  text-align: center;
+}
+
+.bgColor_fff{
+  background-color: #fff;
+}

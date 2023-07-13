@@ -1,0 +1,3 @@
+export const ISCOLLAPSED = 'ISCOLLAPSED';
+export const ACCESSTOKEN = 'ACCESSTOKEN';
+
