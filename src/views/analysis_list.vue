@@ -6,6 +6,7 @@
       <span class="note_txt">*注：当前仅支持上传后缀为srt的字幕文件~~</span>
     </Upload>
     <Button type="primary" class="options_btn" size="large" @click="importBtn">导出</Button>
+    <Button type="primary" class="options_btn" size="large" @click="handleDataBtn">处理数据</Button>
   </div>
 </template>
 
@@ -17,7 +18,7 @@
 
   .upload_box {
     width: 60%;
-    margin: 50px auto 20px;
+    margin: 50px auto 0px;
     position: relative;
 
     /deep/ .ivu-upload-drag {
@@ -48,7 +49,7 @@
 
   .options_btn {
     width: 60%;
-    margin: 0 auto;
+    margin: 20px auto 0;
   }
 
   .modalStyle {
@@ -100,6 +101,24 @@ export default {
   created() {
   },
   methods: {
+    // 处理经典台词搜的数据
+    handleDataBtn() {
+      const instance = axios.create();
+      instance.get('./originalData.json').then(response => {
+        const data = response.data || [];
+        if (data.length > 0) {
+          const uniqueArray = Array.from(new Map(data.map(item => [item.id, item])).values());
+          const sortedArray = uniqueArray.sort((a, b) => b.id - a.id);
+          const blob = new Blob([JSON.stringify(sortedArray)], {type: 'application/json'});
+          let nowTime = moment().valueOf();
+          let name = `todayLinesData-${nowTime}`;
+          FileSaver.saveAs(blob, `${name}.json`);
+          window.location.reload()
+        }
+      }).catch(error => {
+        console.error('请求失败', error);
+      });
+    },
     importBtn() {
       // 将json转换成字符串
       let data = {

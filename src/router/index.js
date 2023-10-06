@@ -15,7 +15,7 @@ const router = new Router({
           name: 'analysis_list',
           component: () => import('@/views/analysis_list'),
           meta: {
-            title: '解析文件',
+            title: '台词数据处理',
             requireAuth: true
           }
         },

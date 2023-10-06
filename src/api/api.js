@@ -20,6 +20,7 @@ export const GetMaoyan = (data) => {
     });
   });
 };
+
 /**
  * @Description: 获取小程序全局唯一后台接口调用凭据（access_token）
  * @author jing
@@ -49,7 +50,6 @@ export const GetAccessToken = (data) => {
  */
 
 export const GetUserPortrait = (data, token) => {
-  console.log('+++++++++==', data, token);
   return new Promise((resolve, reject) => {
     axios({
       loading: true,

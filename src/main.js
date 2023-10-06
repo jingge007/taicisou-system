@@ -6,6 +6,7 @@ import App from './App.vue';
 import ViewUI from 'view-design';
 import Moment from 'moment';
 import components from '@/utils/components';
+import leancloud from "@/utils/leancloud";
 import 'view-design/dist/styles/iview.css';
 import '@/styles/index.less'
 
@@ -14,7 +15,7 @@ Vue.use(ViewUI, {
 });
 Moment.locale('zh-cn');
 window.moment = Moment;
-Vue.use(components, Moment);
+Vue.use(components, Moment, leancloud);
 Vue.config.productionTip = false;
 new Vue({
   router,

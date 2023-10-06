@@ -178,7 +178,7 @@ export default {
           icon_size: '20px',
           size: '28px',
           name: 'analysis_list',
-          title: '解析字幕'
+          title: '台词数据处理'
         },
         {
           icon: 'icon-mingrenyulu',
