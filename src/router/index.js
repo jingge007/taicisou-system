@@ -20,6 +20,15 @@ const router = new Router({
           }
         },
         {
+          path: '/classicLineData',
+          name: 'classicLineData',
+          component: () => import('@/views/classicLineData'),
+          meta: {
+            title: '经典台词数据处理',
+            requireAuth: true
+          }
+        },
+        {
           path: '/todayLinesData',
           name: 'todayLinesData',
           component: () => import('@/views/todayLinesData'),

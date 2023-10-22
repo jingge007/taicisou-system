@@ -1,124 +1,32 @@
 <template>
-  <div class="analysis_list_box">
-    <Upload class="upload_box" multiple action="*" type="drag" :before-upload="handleBeforeUpload">
-      <Icon type="ios-cloud-upload" size="52" style="color: #3399ff"/>
-      <p class="text">单击或拖动字幕文件上传</p>
-      <span class="note_txt">*注：当前仅支持上传后缀为srt的字幕文件~~</span>
-    </Upload>
-    <Button type="primary" class="options_btn" size="large" @click="importBtn">导出</Button>
-    <Button type="primary" class="options_btn" size="large" @click="handleDataBtn">处理数据</Button>
-  </div>
+ <div>
+   <div class="analysis_list_box">
+     <Upload class="upload_box" multiple action="*" type="drag" :before-upload="handleBeforeUpload">
+       <Icon type="ios-cloud-upload" size="52" style="color: #3399ff"/>
+       <p class="text">单击或拖动字幕文件上传</p>
+       <span class="note_txt">*注：当前仅支持上传后缀为srt的字幕文件~~</span>
+     </Upload>
+     <Button type="primary" class="options_btn" size="large" @click="importBtn">导出</Button>
+   </div>
+ </div>
 </template>
-
-<style lang="less" scoped>
-.analysis_list_box {
-  display: flex;
-  justify-content: center;
-  flex-direction: column;
-
-  .upload_box {
-    width: 60%;
-    margin: 50px auto 0px;
-    position: relative;
-
-    /deep/ .ivu-upload-drag {
-      padding: 30px 0;
-      border: 2px dashed #c1c1c1;
-      overflow: inherit;
-
-      &:hover {
-        border: 2px dashed #2d8cf0;
-      }
-    }
-
-    .text {
-      color: #666;
-      font-size: 22px;
-      margin-top: 8px;
-    }
-
-    .note_txt {
-      color: #D03323;
-      font-weight: bold;
-      font-size: 15px;
-      position: absolute;
-      top: -30px;
-      left: 0;
-    }
-  }
-
-  .options_btn {
-    width: 60%;
-    margin: 20px auto 0;
-  }
-
-  .modalStyle {
-    .ivu-modal-content {
-      .model_box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        .text_box {
-          margin-left: 15px;
-          display: flex;
-          flex-direction: column;
-          font-size: 17px;
-          color: #333;
-          font-weight: bold;
-
-          .colorStyle {
-            margin: 0 6px;
-            font-size: 18px;
-            color: #2D8CF0;
-          }
-        }
-      }
-
-      .footer_box {
-        .ivu-btn-primary {
-          padding: 0 12px;
-        }
-      }
-    }
-  }
-}
-</style>
 
 <script type="text/ecmascript-6">
 import axios from 'axios';
 import {ImgSize} from '@/utils/common';
-import {GetInstitution, GetMaoyan} from '@/api/api';
+import {GetMaoyan} from '@/api/api';
 import FileSaver from 'file-saver'
 
 export default {
   data() {
     return {
       filesData: [],
-      subtitleData: []
+      subtitleData: [],
     };
   },
   created() {
   },
   methods: {
-    // 处理经典台词搜的数据
-    handleDataBtn() {
-      const instance = axios.create();
-      instance.get('./originalData.json').then(response => {
-        const data = response.data || [];
-        if (data.length > 0) {
-          const uniqueArray = Array.from(new Map(data.map(item => [item.id, item])).values());
-          const sortedArray = uniqueArray.sort((a, b) => b.id - a.id);
-          const blob = new Blob([JSON.stringify(sortedArray)], {type: 'application/json'});
-          let nowTime = moment().valueOf();
-          let name = `todayLinesData-${nowTime}`;
-          FileSaver.saveAs(blob, `${name}.json`);
-          window.location.reload()
-        }
-      }).catch(error => {
-        console.error('请求失败', error);
-      });
-    },
     importBtn() {
       // 将json转换成字符串
       let data = {
@@ -129,18 +37,6 @@ export default {
       FileSaver.saveAs(blob, `erorr.txt`)
       window.location.reload()
     },
-
-
-    // bbb () {
-    //   let query = {
-    //     action: 'seek_all',
-    //     pageNum: 0,
-    //     query: '快乐'
-    //   };
-    //   GetInstitution(query).then((res) => {
-    //     console.log('=============', res);
-    //   });
-    // },
     handleBeforeUpload(file) {
       this.filesData.push(file);
       return false;
@@ -256,4 +152,79 @@ export default {
   }
 };
 </script>
+
+<style lang="less" scoped>
+.analysis_list_box {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+
+  .upload_box {
+    width: 60%;
+    margin: 20px auto 0px;
+    position: relative;
+
+    /deep/ .ivu-upload-drag {
+      padding: 30px 0;
+      border: 2px dashed #c1c1c1;
+      overflow: inherit;
+
+      &:hover {
+        border: 2px dashed #2d8cf0;
+      }
+    }
+
+    .text {
+      color: #666;
+      font-size: 22px;
+      margin-top: 8px;
+    }
+
+    .note_txt {
+      color: #D03323;
+      font-weight: bold;
+      font-size: 15px;
+      position: absolute;
+      top: -30px;
+      left: 0;
+    }
+  }
+
+  .options_btn {
+    width: 60%;
+    margin: 10px auto 0;
+  }
+
+  .modalStyle {
+    .ivu-modal-content {
+      .model_box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .text_box {
+          margin-left: 15px;
+          display: flex;
+          flex-direction: column;
+          font-size: 17px;
+          color: #333;
+          font-weight: bold;
+
+          .colorStyle {
+            margin: 0 6px;
+            font-size: 18px;
+            color: #2D8CF0;
+          }
+        }
+      }
+
+      .footer_box {
+        .ivu-btn-primary {
+          padding: 0 12px;
+        }
+      }
+    }
+  }
+}
+</style>
 

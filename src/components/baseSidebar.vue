@@ -178,7 +178,15 @@ export default {
           icon_size: '20px',
           size: '28px',
           name: 'analysis_list',
-          title: '台词数据处理'
+          title: '字幕台词数据处理'
+        },
+        {
+          icon: 'icon-jiexi',
+          singlePage: true,
+          icon_size: '20px',
+          size: '28px',
+          name: 'classicLineData',
+          title: '经典台词数据处理'
         },
         {
           icon: 'icon-mingrenyulu',

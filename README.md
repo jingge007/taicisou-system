@@ -17,3 +17,8 @@ npm run build
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+`将项目部署到leancloud中的命令：`
+```angular2html
+lean deploy --prod
+```

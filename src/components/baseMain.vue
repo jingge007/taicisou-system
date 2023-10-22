@@ -22,6 +22,7 @@
       display: flex;
       flex-direction: column;
       flex: auto;
+      overflow-y: auto;
 
       .content_box {
         margin: 75px 20px 20px 20px;

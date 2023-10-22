@@ -15,7 +15,9 @@ Vue.use(ViewUI, {
 });
 Moment.locale('zh-cn');
 window.moment = Moment;
-Vue.use(components, Moment, leancloud);
+Vue.use(Moment);
+Vue.use(components);
+Vue.use(leancloud);
 Vue.config.productionTip = false;
 new Vue({
   router,

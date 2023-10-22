@@ -1,0 +1,78 @@
+/*配置系统常用的通用样式*/
+
+// 默认生成1到100的margin、marginTop、marginBottom、marginRight、marginLeft
+@marginNum: 200;
+.marginStyle(@num) when (@num>1) {
+  .mt@{num} {
+    margin-top: (1px * @num);
+  }
+  .mr@{num} {
+    margin-right: (1px * @num);
+  }
+  .mb@{num} {
+    margin-bottom: (1px * @num);
+  }
+  .ml@{num} {
+    margin-left: (1px * @num);
+  }
+  .m@{num} {
+    margin: (1px * @num);
+  }
+  .marginStyle((@num - 1))
+}
+
+.marginStyle(@marginNum);
+
+// 默认生成1到100的padding、paddingTop、paddingBottom、paddingRight、paddingLeft
+@paddingNum: 100;
+.paddingStyle(@num) when (@num>1) {
+  .pt@{num} {
+    padding-top: (1px * @num);
+  }
+  .pr@{num} {
+    padding-right: (1px * @num);
+  }
+  .pb@{num} {
+    padding-bottom: (1px * @num);
+  }
+  .pl@{num} {
+    padding-left: (1px * @num);
+  }
+  .p@{num} {
+    padding: (1px * @num);
+  }
+  .ptb@{num} {
+    padding: (1px * @num) 0;
+  }
+  .paddingStyle((@num - 1))
+}
+
+.paddingStyle(@paddingNum);
+
+
+// 默认生成12到60的字体大小
+@fontSizeNum: 60;
+.fontSizeNumStyle(@font) when (@font>11) {
+  .font-size-@{font} {
+    font-size: (1px * @font);
+  }
+  .fontSizeNumStyle((@font - 1))
+}
+
+.fontSizeNumStyle(@fontSizeNum);
+
+//默认生成1到10行，超出显示省略号
+@ellipsisNum: 10;
+.ellipsisStyle(@number) when (@number>0) {
+  .ellipsis_@{number} {
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: @number;
+    word-wrap: break-word;
+    word-break: break-all;
+    overflow: hidden;
+  }
+  .ellipsisStyle((@number - 1));
+}
+
+.ellipsisStyle(@ellipsisNum);
