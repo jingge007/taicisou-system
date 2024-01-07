@@ -49,7 +49,7 @@ export function tryHideFullScreenLoading () {
 }
 axios.defaults.timeout = 30000;
 axios.defaults.withCredentials = true; // 跨域默认不带cookie
-axios.defaults.baseUrl = 'https://taici-api.taicisou.cn';
+axios.defaults.baseUrl = '';
 axios.interceptors.request.use(
   config => {
     if (config.isbaseUrl) {

@@ -68,30 +68,7 @@ export default {
     },
     // 处理经典台词搜的数据
     handleDataBtn() {
-      const instance = axios.create();
-      instance.get('./originalData.json').then(response => {
-        const data = response.data || [];
-        if (data.length > 0) {
-          // 使用reduce方法进行去重
-          let uniqueArr = data.reduce((acc, current) => {
-            const x = acc.find(item => item.id === current.id);
-            if (!x) {
-              return acc.concat([current]);
-            } else {
-              return acc;
-            }
-          }, []);
-          // 根据id进行降序排序
-          let sortedArr = uniqueArr.sort((a, b) => b.id - a.id);
-          /*const blob = new Blob([JSON.stringify(sortedArr)], {type: 'application/json'});
-          let nowTime = moment().valueOf();
-          let name = `todayLinesData-${nowTime}`;
-          FileSaver.saveAs(blob, `${name}.json`);
-          window.location.reload()*/
-        }
-      }).catch(error => {
-        console.error('请求失败', error);
-      });
+
     }
   }
 }
