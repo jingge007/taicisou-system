@@ -25,11 +25,11 @@ module.exports = {
   publicPath: '/',
   devServer: {
     proxy: {
-      '/apollo': {
+      '/api': {
         target: 'https://i.maoyan.com',
         changeOrigin: true,
         pathRewrite: {
-          '^/apollo': '/apollo',
+          '^/api': '/',
         },
       },
     },

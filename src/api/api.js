@@ -11,7 +11,7 @@ export const GetMaoyan = (data) => {
     axios({
       loading: true,
       method: 'get',
-      url: '/apollo/ajax/search',
+      url: '/api/apollo/ajax/search',
       params: data
     }).then(response => {
       resolve(response);
