@@ -1,4 +1,4 @@
-const { defineConfig } = require('@vue/cli-service')
+/*const { defineConfig } = require('@vue/cli-service')
 module.exports = defineConfig({
   transpileDependencies: true,
   // publicPath: '/taicisou-system/'
@@ -18,10 +18,9 @@ module.exports = defineConfig({
       },
     },
   },
-})
+})*/
 
 
-/*
 module.exports = {
   publicPath: '/',
   devServer: {
@@ -35,4 +34,4 @@ module.exports = {
       },
     },
   },
-};*/
+};

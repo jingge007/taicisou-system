@@ -2,11 +2,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/apollo/:path(.*)",
-      "destination": "https://i.maoyan.com/:path"
+      "destination": "/proxy"
     }
   ]
 }

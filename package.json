@@ -11,6 +11,7 @@
     "axios": "^1.4.0",
     "core-js": "^3.8.3",
     "file-saver": "^2.0.5",
+    "http-proxy-middleware": "^2.0.6",
     "leancloud-storage": "^4.15.0",
     "leanengine": "^3.8.0",
     "srt-parser-2": "^1.2.3",
