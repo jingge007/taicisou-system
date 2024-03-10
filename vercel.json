@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/agentConfig/proxy"
+      "destination": "/api/proxy"
     }
   ]
 }
