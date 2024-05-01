@@ -20,3 +20,18 @@ export const GetMaoyan = (data) => {
     });
   });
 };
+
+export const getBanner = (data) => {
+  return new Promise((resolve, reject) => {
+    axios({
+      loading: true,
+      method: 'get',
+      url: '/api/banner?type=0',
+      params: data
+    }).then(response => {
+      resolve(response);
+    }).catch(err => {
+      reject(err);
+    });
+  });
+};

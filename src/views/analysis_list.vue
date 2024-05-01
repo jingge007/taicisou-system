@@ -7,13 +7,14 @@
         <span class="note_txt">*注：当前仅支持上传后缀为srt的字幕文件~~</span>
       </Upload>
     </div>
+    <Button type="primary" class="options_btn" @click="queryBtn">请求数据</Button>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
 import axios from 'axios';
 import {handleLoading, ImgSize} from '@/utils/common';
-import {GetMaoyan} from '@/api/api';
+import {GetMaoyan, getBanner} from '@/api/api';
 import FileSaver from 'file-saver';
 import srtParser2 from "srt-parser-2";
 
@@ -27,6 +28,12 @@ export default {
   created() {
   },
   methods: {
+    //
+    queryBtn() {
+      getBanner().then((res) => {
+        console.log('res=============', res);
+      });
+    },
     handleBeforeUpload(file) {
       let v = this;
       v.subtitleData = [];

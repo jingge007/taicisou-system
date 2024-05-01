@@ -26,7 +26,7 @@ module.exports = {
   devServer: {
     proxy: {
       '/api': {
-        target: 'https://i.maoyan.com',
+        target: 'https://musicapi.taicisou.cn', //target: 'https://i.maoyan.com',
         changeOrigin: true,
         pathRewrite: {
           '^/api': '/',
