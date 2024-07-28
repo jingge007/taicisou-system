@@ -115,7 +115,7 @@ export default {
       // 过滤包含 '{\\pos  �'、 {\fs12}、{\an5}、♪、{\\fad}、{\\、{\an8} 字符的字幕数据
       const filteredSubtitlesData = subtitlesData.filter((item) => !item.text.includes('{\\') &&
         !item.text.includes('�') && !item.text.includes('♪') && !item.text.includes('{\fs12}') && !item.text.includes('{\an5}') &&
-        !item.text.includes('{\fad}') && !item.text.includes('{\an8}'))
+        !item.text.includes('{\fad}') && !item.text.includes('{\an8}') && !item.text.includes('{\an1}'))
         .map((ele, index) => {
           let text = ele.text.split('\n');
           // 处理 subtitles 并返回所需的数据格式
