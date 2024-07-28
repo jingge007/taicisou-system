@@ -38,7 +38,7 @@ export default {
         setTimeout(() => {
           v.$Modal.confirm({
             title: '上传文件成功',
-            content: '是否处理字幕文件数据？',
+            content: `已经成功上传${v.filesData.length}个文件，是否处理字幕文件数据？`,
             onOk: () => {
               v.handerData(v.filesData);
               setTimeout(() => {
@@ -49,7 +49,7 @@ export default {
               v.filesData = [];
             },
           });
-        }, 500);
+        }, 1000);
       }
       return false;
     },
@@ -151,6 +151,8 @@ export default {
             } else {
               console.log(`获取电影字幕信息失败：=========${item.name}========`, res)
             }
+          }).catch((error) => {
+            console.log(`获取电影字幕信息失败：=========${item.name}========`, error)
           });
         });
       }
