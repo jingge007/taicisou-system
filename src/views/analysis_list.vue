@@ -110,25 +110,34 @@ export default {
     },
     // 解析srt字幕文件的方法
     handleSrtSubtitlesData(subtitleFile) {
+      // 使用 srtParser2 解析SRT文件
       const parser = new srtParser2();
       const subtitlesData = parser.fromSrt(subtitleFile);
-      // 过滤包含 '{\\pos  �'、 {\fs12}、{\an5}、♪、{\\fad}、{\\、{\an8} 字符的字幕数据
-      const filteredSubtitlesData = subtitlesData.filter((item) => !item.text.includes('{\\') &&
-        !item.text.includes('�') && !item.text.includes('♪') && !item.text.includes('{\fs12}') && !item.text.includes('{\an5}') &&
-        !item.text.includes('{\fad}') && !item.text.includes('{\an8}') && !item.text.includes('{\an1}'))
-        .map((ele, index) => {
-          let text = ele.text.split('\n');
-          // 处理 subtitles 并返回所需的数据格式
-          if (text[0] && text[1]) {
-            return {
-              zhContent: text[0] || '',
-              esContent: text[1] || '',
-              content: ele.text,
-              startTime: ele.startTime,
-              endTime: ele.endTime
-            };
-          }
-        });
+      // 过滤掉包含特殊符号的字幕
+      const filteredSubtitlesData = subtitlesData.filter((item) => {
+        // 过滤掉包含特殊符号的字幕
+        return !item.text.includes('{\\') && // 过滤掉所有包含 {\ 的标记
+          !item.text.includes('�') &&  // 过滤掉乱码字符
+          !item.text.includes('♪') &&  // 过滤掉音乐符号
+          !item.text.includes('{\\fs') && // 过滤掉字体大小标记
+          !item.text.includes('{\\an') && // 过滤掉对齐标记
+          !item.text.includes('{\\fad'); // 过滤掉淡入淡出标记
+      }).map((ele, index) => {
+        // 处理字幕文本，通常SRT字幕文件中的文本是双行的（如中英双语）
+        let text = ele.text.split('\n');
+        // 返回处理后的字幕数据
+        if (text[0] && text[1]) {
+          return {
+            zhContent: text[0].trim(), // 第一行通常是中文
+            esContent: text[1].trim(), // 第二行通常是西班牙文
+            content: ele.text.trim(),  // 原始字幕内容
+            startTime: ele.startTime,  // 字幕开始时间
+            endTime: ele.endTime       // 字幕结束时间
+          };
+        }
+      });
+
+      // 过滤掉 undefined 的条目
       let newList = filteredSubtitlesData.filter(item => item !== undefined);
       return newList;
     },
