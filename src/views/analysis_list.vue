@@ -152,7 +152,8 @@ export default {
           let query = {
             kw: title,
             cityId: 30,
-            stype: -1
+            stype: -1,
+            WuKongReady: 'h5'
           };
           GetMaoyan(query).then((res) => {
             if (res.movies) {
