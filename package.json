@@ -36,8 +36,5 @@
     "last 2 versions",
     "not dead"
   ],
-  "homepage": "https://your-username.github.io/taicisou-system",
-  "engines": {
-    "node": "16.x"
-  }
+  "homepage": "https://your-username.github.io/taicisou-system"
 }
