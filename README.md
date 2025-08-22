@@ -1,24 +1,32 @@
-# taicisou-system
+# 台词搜管理系统
 
-## Project setup
-```
-npm install
-```
+台词搜管理系统是一个基于Vue.js的后台管理系统，主要用于处理电影、电视剧字幕和台词数据。
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+## 项目概述
 
-### Compiles and minifies for production
-```
-npm run build
-```
+该系统提供了以下主要功能：
+- 字幕台词数据处理
+- 经典台词数据处理
+- 经典台词展示
+- 电影字幕管理
+- 电视剧字幕管理
+- 用户信息管理
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+## 技术栈
 
-`将项目部署到leancloud中的命令：`
-```angular2html
-lean deploy --prod
-```
+- Vue.js 2.6
+- Vue Router
+- Vuex
+- View UI (原iView)
+- LeanCloud后端服务
+- Axios
+- Less CSS预处理器
+
+## 项目搭建
+
+### 环境要求
+
+- Node.js 18.x
+- npm 或 yarn
+
+### 安装依赖
