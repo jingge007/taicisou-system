@@ -8,7 +8,7 @@
     :class="themeType==='light'?'themeLight':'themeDark'">
     <div class="logo_box" v-if="!isCollapsed" @click="logoBtn">
       <img class="head_logo" src="../assets/images/head_logo.png" alt="">
-      <h2 class="title">台词搜数据中心</h2>
+      <h2 class="title">台词搜管理系统</h2>
     </div>
     <div class="logo_box" v-else @click="logoBtn">
       <img class="mini_head_logo" src="../assets/images/head_logo.png" alt="">
@@ -79,6 +79,10 @@
 .header_box {
   background: #fff;
   height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
   -moz-user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
@@ -117,6 +121,8 @@
   .menu_box {
     overflow-y: auto;
     box-shadow: 2px 7px 8px 0 rgba(29, 35, 41, 0.05);
+    height: calc(100vh - 60px);
+    position: relative;
 
     /deep/ .ivu-menu-submenu-title, /deep/ .ivu-menu-item {
       display: flex;
@@ -147,80 +153,14 @@
 
 <script type="text/ecmascript-6">
 import {mapGetters} from 'vuex';
+import {menuConfig} from '@/utils/navConfig';
 
 export default {
   data() {
     return {
       themeType: 'light',
       theme: 'light',
-      SubmenuList: [
-        // {
-        //   name: 'analysis_subtitles',
-        //   title: '解析字幕',
-        //   singlePage: false,
-        //   icon_size: '20px',
-        //   size: '28px',
-        //   icon: 'icon-jiexi',
-        //   children: [
-        //     {
-        //       name: 'analysis_list',
-        //       title: '解析字幕'
-        //     },
-        //     {
-        //       name: 'analysis_subtitles_11',
-        //       title: '解析字幕01'
-        //     }
-        //   ]
-        // },
-        {
-          icon: 'icon-jiexi',
-          singlePage: true,
-          icon_size: '20px',
-          size: '28px',
-          name: 'analysis_list',
-          title: '字幕台词数据处理'
-        },
-        {
-          icon: 'icon-jiexi',
-          singlePage: true,
-          icon_size: '20px',
-          size: '28px',
-          name: 'classicLineData',
-          title: '经典台词数据处理'
-        },
-        {
-          icon: 'icon-mingrenyulu',
-          singlePage: true,
-          icon_size: '20px',
-          size: '26px',
-          name: 'todayLinesData',
-          title: '经典台词'
-        },
-        {
-          icon: 'icon-dianying',
-          singlePage: true,
-          icon_size: '18px',
-          size: '23px',
-          name: 'movie_subtitles',
-          title: '电影字幕'
-        },
-        {
-          icon: 'icon-dianshiju',
-          singlePage: true,
-          size: '26px',
-          icon_size: '22px',
-          name: 'tv_subtitles',
-          title: '电视剧字幕'
-        },
-        {
-          icon: 'icon-yonghuxinxi',
-          singlePage: true,
-          icon_size: '20px',
-          size: '26px',
-          name: 'user_info',
-          title: '用户信息列表'
-        }
-      ],
+      SubmenuList: menuConfig,
       activeName: '' // 子导航选中的name
     };
   },

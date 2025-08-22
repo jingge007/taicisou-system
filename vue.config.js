@@ -32,6 +32,13 @@ module.exports = {
           '^/api': '/',
         },
       },
+      '/leancloud': {
+        target: 'https://cloud.api.taicisou.cn',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/leancloud': '/'
+        }
+      }
     },
   },
 };
