@@ -8,12 +8,15 @@ import components from '@/utils/components';
 import leancloud from "@/utils/leancloud";
 import 'view-design/dist/styles/iview.css';
 import '@/styles/index.less'
+import Viewer from 'v-viewer'
+import 'viewerjs/dist/viewer.css'
 
 Vue.use(ViewUI, {
   transfer: true
 });
 Vue.use(components);
 Vue.use(leancloud);
+Vue.use(Viewer);
 Vue.config.productionTip = false;
 new Vue({
   router,
