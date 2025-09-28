@@ -13,40 +13,42 @@
         </Form>
       </div>
 
-      <Table :data="userData" :columns="columns" border :max-height="600">
-        <template slot-scope="{ row }" slot="username">
-          <span>{{ row.nickname || '-' }}</span>
-        </template>
-        <template slot-scope="{ row }" slot="avatarUrl">
-          <img
-            v-if="row.avatarUrl"
-            :src="row.avatarUrl"
-            alt="用户头像"
-            style="width: 40px; height: 40px; border-radius: 50%; cursor: pointer;"
-            @click="previewImage(row.avatarUrl)"
-          />
-          <span v-else>无头像</span>
-        </template>
-        <template slot-scope="{ row }" slot="mobilePhoneNumber">
-          <span>{{ row.mobilePhoneNumber || '-' }}</span>
-        </template>
-        <template slot-scope="{ row }" slot="openid">
-          <span>{{ row.openid || '-' }}</span>
-          <Icon
-            v-if="row.openid"
-            type="md-copy"
-            :size="20"
-            style="margin-left: 5px; cursor: pointer; color: #2D8CF0;"
-            @click="copyOpenid(row.openid)"
-            title="复制OpenID"/>
-        </template>
-        <template slot-scope="{ row }" slot="createdAt">
-          <span>{{ row.createdAt ? formatDate(new Date(row.createdAt)) : '-' }}</span>
-        </template>
-        <template slot-scope="{ row }" slot="updatedAt">
-          <span>{{ row.updatedAt ? formatDate(new Date(row.updatedAt)) : '-' }}</span>
-        </template>
-      </Table>
+      <div v-viewer="viewerOptions">
+        <Table :data="userData" :columns="columns" border :max-height="600">
+          <template slot-scope="{ row }" slot="username">
+            <span>{{ row.nickname || '-' }}</span>
+          </template>
+          <template slot-scope="{ row }" slot="avatarUrl">
+            <img
+              v-if="row.avatarUrl"
+              :src="row.avatarUrl"
+              alt="用户头像"
+              style="width: 40px; height: 40px; border-radius: 50%; cursor: pointer;"
+              :data-source="row.avatarUrl"
+            />
+            <span v-else>无头像</span>
+          </template>
+          <template slot-scope="{ row }" slot="mobilePhoneNumber">
+            <span>{{ row.mobilePhoneNumber || '-' }}</span>
+          </template>
+          <template slot-scope="{ row }" slot="openid">
+            <span>{{ row.openid || '-' }}</span>
+            <Icon
+              v-if="row.openid"
+              type="md-copy"
+              :size="20"
+              style="margin-left: 5px; cursor: pointer; color: #2D8CF0;"
+              @click="copyOpenid(row.openid)"
+              title="复制OpenID"/>
+          </template>
+          <template slot-scope="{ row }" slot="createdAt">
+            <span>{{ row.createdAt ? formatDate(new Date(row.createdAt)) : '-' }}</span>
+          </template>
+          <template slot-scope="{ row }" slot="updatedAt">
+            <span>{{ row.updatedAt ? formatDate(new Date(row.updatedAt)) : '-' }}</span>
+          </template>
+        </Table>
+      </div>
 
       <div style="margin: 10px; overflow: hidden">
         <div style="float: right">
@@ -62,18 +64,6 @@
         </div>
       </div>
     </Card>
-
-    <!-- 图片预览模态框 -->
-    <Modal
-      v-model="imagePreviewVisible"
-      title="头像预览"
-      footer-hide
-      width="400"
-    >
-      <div style="text-align: center; padding: 20px;">
-        <img :src="previewImageUrl" alt="头像预览" style="max-width: 100%; max-height: 400px;" />
-      </div>
-    </Modal>
   </div>
 </template>
 
@@ -90,8 +80,10 @@ padding-top: 5px;
 <script type="text/ecmascript-6">
 import tools from '@/utils/tools';
 import { handleLoading } from '@/utils/common';
+import commonMixin from '@/utils/common_mixin.js';
 
 export default {
+  mixins: [commonMixin],
   data() {
     return {
       filterForm: {
@@ -132,9 +124,7 @@ export default {
       ],
       total: 0,
       currentPage: 1,
-      pageSize: 20,
-      imagePreviewVisible: false, // 图片预览模态框可见性
-      previewImageUrl: '' // 预览图片URL
+      pageSize: 20
     };
   },
   created() {
@@ -219,12 +209,6 @@ export default {
       this.pageSize = size;
       this.currentPage = 1;
       this.fetchUserData();
-    },
-
-    // 预览头像大图
-    previewImage(url) {
-      this.previewImageUrl = url;
-      this.imagePreviewVisible = true;
     }
   }
 };

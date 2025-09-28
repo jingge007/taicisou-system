@@ -65,7 +65,7 @@
       @on-cancel="handleCancel"
       class-name="classic-lines-modal"
       width="800">
-      <Form :model="formData" :label-width="100" ref="form" :rules="formRules">
+      <Form :model="formData" :label-width="120" ref="form" :rules="formRules">
         <Row :gutter="gutterItem" style="width:90%">
           <Col :xxl="oneItemCol" :xl="oneItemCol" :lg="oneItemCol" :md="oneItemCol">
             <FormItem label="电影名称" prop="movieName">
@@ -89,7 +89,7 @@
           </Col>
           <Col :xxl="oneItemCol" :xl="oneItemCol" :lg="oneItemCol" :md="oneItemCol">
             <FormItem label="海报预览" v-if="formData.picUrl && isValidImageUrl(formData.picUrl)">
-              <div style="max-width: 100%; overflow: hidden;">
+              <div style="max-width: 100%; overflow: hidden; cursor: pointer;" v-viewer="viewerOptions">
                 <img :src="formData.picUrl" style="max-width: 100%; max-height: 200px; border-radius: 4px;"/>
               </div>
             </FormItem>
