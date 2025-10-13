@@ -21,6 +21,7 @@
         <Button type="primary" class="options_btn" @click="showAddModal">新增</Button>
         <Button type="error" class="options_btn" :disabled="selectedRows.length === 0" @click="handleBatchDelete"
           style="margin-left: 10px;">批量删除</Button>
+        <Button type="info" class="options_btn" @click="countUniqueMovies" style="margin-left: 10px;">统计电影总数</Button>
       </div>
 
       <div v-viewer="viewerOptions">
@@ -373,6 +374,102 @@ export default {
       } catch (error) {
         console.error('获取电影字幕数据失败:', error);
         this.$Message.error('获取数据失败: ' + error.message);
+      }
+    },
+
+    // 统计唯一电影数量
+    async countUniqueMovies() {
+      try {
+        // 获取所有字幕数据（支持超过1000条记录）
+        const query = new this.$leancloud.Query('subtitleData');
+        
+        // 如果有搜索条件，也应用到统计查询中
+        if (this.searchForm.movieName) {
+          query.contains('title', this.searchForm.movieName);
+        }
+        
+        // 使用分页方式获取所有数据
+        const allResults = [];
+        let skip = 0;
+        const limit = 1000;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const batchQuery = new this.$leancloud.Query('subtitleData');
+          if (this.searchForm.movieName) {
+            batchQuery.contains('title', this.searchForm.movieName);
+          }
+          batchQuery.limit(limit).skip(skip);
+          
+          const batchResults = await batchQuery.find();
+          allResults.push(...batchResults);
+          
+          // 如果返回结果少于限制数量，说明已经获取完所有数据
+          if (batchResults.length < limit) {
+            hasMore = false;
+          } else {
+            skip += limit;
+          }
+        }
+        
+        // 提取电影数据并去重
+        const movieMap = new Map();
+        const movieData = [];
+        
+        for (const item of allResults) {
+          const data = item.toJSON();
+          
+          // 获取电影ID（从moviesInfo或直接从data中获取）
+          let movieId = null;
+          if (data.moviesInfo && data.moviesInfo.id) {
+            movieId = data.moviesInfo.id;
+          } else if (data.id) {
+            movieId = data.id;
+          }
+          
+          // 获取系统字段
+          let createdAt = item.get('createdAt');
+          let updatedAt = item.get('updatedAt');
+          
+          if (createdAt && typeof createdAt.toDate === 'function') {
+            createdAt = createdAt.toDate();
+          }
+          
+          if (updatedAt && typeof updatedAt.toDate === 'function') {
+            updatedAt = updatedAt.toDate();
+          }
+          
+          // 根据电影ID去重
+          if (movieId && !movieMap.has(movieId)) {
+            movieMap.set(movieId, true);
+            
+            // 提取电影信息用于展示
+            let movieTitle = data.title;
+            let coverUrl = data.coverUrl;
+            
+            if (data.moviesInfo) {
+              movieTitle = data.moviesInfo.nm || data.title;
+              coverUrl = data.moviesInfo.img || data.coverUrl;
+            }
+            
+            movieData.push({
+              ...data,
+              title: movieTitle,
+              id: movieId,
+              coverUrl: coverUrl,
+              createdAt,
+              updatedAt
+            });
+          }
+        }
+        
+        console.log('唯一电影总数:', movieMap.size);
+        console.log('唯一电影详细数据:', movieData);
+        
+        this.$Message.success(`查询成功，共有 ${movieMap.size} 部唯一电影，详细数据已在控制台打印`);
+      } catch (error) {
+        console.error('统计唯一电影数量失败:', error);
+        this.$Message.error('统计失败: ' + error.message);
       }
     },
 
