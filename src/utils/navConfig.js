@@ -1,21 +1,6 @@
 // 导航菜单和路由配置
 export const navConfig = [
   {
-    icon: 'icon-paishe',
-    singlePage: true,
-    icon_size: '20px',
-    size: '28px',
-    name: 'movieSubtitleDataProcessing',
-    title: '电影字幕数据处理',
-    path: '/movieSubtitleDataProcessing',
-    component: () => import('@/views/movieSubtitleDataProcessing'),
-    meta: {
-      title: '电影字幕数据处理',
-      requireAuth: true
-    }
-  },
-  
-  {
     icon: 'icon-jiexi',
     singlePage: true,
     icon_size: '20px',
@@ -25,7 +10,7 @@ export const navConfig = [
     path: '/analysis_list',
     component: () => import('@/views/analysis_list'),
     meta: {
-      title: '台词数据处理',
+      title: '字幕台词数据处理',
       requireAuth: true
     }
   },
