@@ -6,10 +6,11 @@ import axios from 'axios';
  * @date 2020/11/27
  * @params: kw: 关键词, cityId: 城市id, stype: -1
  */
-export const GetMaoyan = (data) => {
+export const GetMaoyan = (data, falseEndLoading = true) => {
   return new Promise((resolve, reject) => {
     axios({
       loading: true,
+      endLoading: falseEndLoading,
       method: 'get',
       url: '/api/apollo/ajax/search',
       params: data

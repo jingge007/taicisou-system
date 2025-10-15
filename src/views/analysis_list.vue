@@ -49,20 +49,56 @@
       </div>
     </Card>
 
-    <Card class="progress-card" v-if="uploadProgressList.length > 0">
+    <!-- 总进度条 -->
+    <Card class="progress-card" v-if="totalProgress.show">
       <div class="card-header flex">
-        <Icon type="md-list" size="24" class="header-icon"/>
-        <h2 class="card-title">上传进度</h2>
-        <div class="toolbar">
-          <Button 
-            type="primary" 
-            :disabled="selectedRows.length === 0" 
+        <Icon type="md-stats" size="24" class="header-icon"/>
+        <h2 class="card-title">总处理进度</h2>
+      </div>
+      <div style="padding: 10px 0;">
+        <Progress
+          :percent="totalProgress.percent"
+          :status="totalProgress.status"
+          :stroke-width="20">
+          <span>{{ totalProgress.current }} / {{ totalProgress.total }}</span>
+        </Progress>
+      </div>
+    </Card>
+
+    <Card class="progress-card" v-if="uploadProgressList.length > 0">
+      <div class="card-header flex" style="flex-wrap: wrap; align-items: center;">
+        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+          <Icon type="md-list" size="24" class="header-icon"/>
+          <h2 class="card-title">上传进度</h2>
+        </div>
+
+        <!-- 汇总信息 -->
+        <div class="summary-info" style="display: flex; margin: 0 20px 10px 20px; padding: 5px 15px; background: #f8f9fa; border-radius: 4px;">
+          <div style="display: flex; align-items: center; margin-right: 20px;">
+            <span style="font-size: 14px; color: #515a6e; margin-right: 5px;">总文件数:</span>
+            <Tag color="primary">{{ uploadSummary.total }}</Tag>
+          </div>
+          <div style="display: flex; align-items: center; margin-right: 20px;">
+            <span style="font-size: 14px; color: #515a6e; margin-right: 5px;">成功:</span>
+            <Tag color="success">{{ uploadSummary.success }}</Tag>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="font-size: 14px; color: #515a6e; margin-right: 5px;">失败:</span>
+            <Tag color="error">{{ uploadSummary.failed }}</Tag>
+          </div>
+        </div>
+
+        <div class="toolbar" style="margin-bottom: 10px;">
+          <Button
+            type="primary"
+            :disabled="selectedRows.length === 0"
             @click="handleBatchUpload"
             style="margin-left: 10px;">
             批量上传选中数据
           </Button>
         </div>
       </div>
+
       <div v-viewer="viewerOptions">
         <Table
           border
@@ -74,6 +110,13 @@
           @on-selection-change="handleSelectionChange"
         />
       </div>
+
+      <!-- 字幕预览弹窗 -->
+      <SubtitlePreviewModal
+        v-model="subtitlePreviewVisible"
+        :subtitle-data="subtitlePreviewData"
+        @close="subtitlePreviewVisible = false">
+      </SubtitlePreviewModal>
     </Card>
   </div>
 </template>
@@ -86,6 +129,9 @@ import {handleLoading, ImgSize} from "@/utils/common";
 import {GetMaoyan} from "@/api/api";
 
 export default {
+  components: {
+    SubtitlePreviewModal: () => import('@/components/SubtitlePreviewModal.vue')
+  },
   data() {
     return {
       filesData: [],                     // 存储上传的文件数据
@@ -96,6 +142,20 @@ export default {
       isDefaultUpload: true,             // 是否默认上传数据的开关
       isProcessing: false,                // 处理状态标志，用于跟踪是否正在处理数据
       selectedRows: [],                  // 选中的行数据
+      // 总进度信息
+      totalProgress: {
+        show: false,
+        current: 0,
+        total: 0,
+        percent: 0,
+        status: 'normal' // normal, success, error
+      },
+      // 上传汇总信息
+      uploadSummary: {
+        total: 0,
+        success: 0,
+        failed: 0
+      },
       viewerOptions: {
         navbar: false,
         title: false,
@@ -244,6 +304,8 @@ export default {
                               this.movieDataList.splice(movieIndex, 1);
                             }
                             this.$Message.success("删除成功");
+                            // 更新汇总信息
+                            this.updateUploadSummary();
                           }
                         }
                       });
@@ -276,19 +338,9 @@ export default {
                     // 查看字幕内容
                     const movieData = this.movieDataList.find(item => item.id === params.row.id);
                     if (movieData) {
-                      // 计算字幕条数
-                      const subtitleCount = movieData.subtitleData ? movieData.subtitleData.length : 0;
-                      
-                      this.$Modal.info({
-                        title: "字幕内容预览",
-                        content: `
-                          <div>
-                            <p><strong>字幕条数统计：</strong>${subtitleCount} 条</p>
-                            <pre style="white-space: pre-wrap; word-wrap: break-word; max-height: 400px; overflow-y: auto;">${movieData.movieSubtitleFiles}</pre>
-                          </div>
-                        `,
-                        width: 800
-                      });
+                      // 设置预览数据并显示模态框
+                      this.subtitlePreviewData = movieData;
+                      this.subtitlePreviewVisible = true;
                     }
                   }
                 }
@@ -310,6 +362,8 @@ export default {
                             this.movieDataList.splice(movieIndex, 1);
                           }
                           this.$Message.success("删除成功");
+                          // 更新汇总信息
+                          this.updateUploadSummary();
                         }
                       }
                     });
@@ -319,7 +373,10 @@ export default {
             ]);
           }
         }
-      ]
+      ],
+      // 新增用于字幕预览的数据
+      subtitlePreviewData: null,
+      subtitlePreviewVisible: false
     };
   },
   methods: {
@@ -333,7 +390,26 @@ export default {
         this.$Message.error("只能上传 .srt 格式文件");
         return false;
       }
-      this.filesData.push(file);
+      
+      // 校验文件名的唯一性
+      if (this.filesData.some(f => f.name === file.name)) {
+        this.$Message.error(`文件 ${file.name} 已存在，请勿重复上传`);
+        // 添加到文件数据中，但标记为重复
+        this.filesData.push({
+          name: file.name,
+          file: file,
+          duplicate: true
+        });
+        // 更新汇总信息以包含重复文件
+        this.updateUploadSummary();
+        return false;
+      }
+      
+      this.filesData.push({
+        name: file.name,
+        file: file,
+        duplicate: false
+      });
 
       setTimeout(() => {
         this.$Modal.confirm({
@@ -350,10 +426,51 @@ export default {
     },
 
     /**
+     * 检查电影数据在 LeanCloud 中是否重复
+     * @param {string} id - 电影ID
+     * @param {string} title - 电影标题
+     * @returns {Promise<boolean>} - 是否重复
+     */
+    async checkMovieDataDuplicate(id, title) {
+      try {
+        const query = new this.$leancloud.Query('movieData');
+        query.equalTo('id', id);
+        query.equalTo('title', title);
+        const count = await query.count();
+        return count > 0;
+      } catch (error) {
+        console.error('检查数据唯一性时出错:', error);
+        // 出错时假设数据不重复，避免阻止正常流程
+        return false;
+      }
+    },
+
+    /**
+     * 更新上传汇总信息
+     */
+    updateUploadSummary() {
+      // 总数为处理的文件数，包括成功和各种失败情况
+      const total = this.uploadProgressList.length;
+      
+      // 成功处理的文件数
+      const success = this.uploadProgressList.filter(item => item.status === "成功").length;
+      
+      // 失败的文件数
+      const failed = total - success;
+
+      this.uploadSummary = {
+        total,
+        success,
+        failed
+      };
+    },
+
+    /**
      * 顺序处理字幕数据
      * @param {Array} fileList - 文件列表
      */
     async handleSubtitleDataSequentially(fileList) {
+      let timer = null;
       // 如果文件列表为空，直接返回
       if (!fileList.length) return;
 
@@ -361,157 +478,254 @@ export default {
       this.uploadProgressList = [];
       this.movieDataList = [];
       this.isProcessing = true; // 设置处理状态为true
-      handleLoading(true, "正在按顺序请求电影信息...");
-
-      // 依次处理每个文件
-      for (let file of fileList) {
-        // 从文件名提取电影标题（去除.srt扩展名）
-        const title = file.name.replace(".srt", "");
-        // 构造查询参数
-        const query = {kw: title, cityId: 30, stype: -1, WuKongReady: "h5"};
-
-        try {
-          // 请求获取电影信息
-          const res = await GetMaoyan(query);
-          if (res?.movies?.list?.length) {
-            // 获取第一个匹配的电影信息
-            const movieInfo = res.movies.list[0];
-            // 处理电影封面图片URL
-            const imgUrl = movieInfo.img.replace(/thumbnail\/\d+x\d+/, `thumbnail/${ImgSize}`);
-
-            // 读取文件内容
-            const fileContent = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsText(file, 'utf-8');
+      // 初始化总进度
+      this.totalProgress = {
+        show: true,
+        current: 0,
+        total: fileList.length,
+        percent: 0,
+        status: 'normal'
+      };
+      // 初始化汇总信息，包含所有文件（包括重复的）
+      this.uploadSummary = {
+        total: fileList.length,
+        success: 0,
+        failed: 0
+      };
+      
+      try {
+        // 启动定时器显示加载状态
+        timer = setTimeout(() => {
+          handleLoading(true, "处理中...");
+        }, 100);
+        
+        // 依次处理每个文件
+        for (let i = 0; i < fileList.length; i++) {
+          const fileItem = fileList[i];
+          const file = fileItem.file || fileItem; // 兼容新旧数据结构
+          const isDuplicateFile = fileItem.duplicate || false; // 检查是否为重复文件
+          
+          // 如果是重复文件，直接添加到失败列表中
+          if (isDuplicateFile) {
+            this.uploadProgressList.push({
+              fileName: file.name, 
+              title: file.name.replace(".srt", ""), 
+              id: "", 
+              coverUrl: "", 
+              status: "失败（文件重复）"
             });
+            continue;
+          }
+          
+          // 从文件名提取电影标题（去除.srt扩展名）
+          const title = file.name.replace(".srt", "");
+          // 构造查询参数
+          const query = {kw: title, cityId: 30, stype: -1, WuKongReady: "h5"};
 
-            // 解析SRT字幕文件
-            const parser = new srtParser2();
-            const subtitlesRaw = parser.fromSrt(fileContent || "");
-            // 过滤掉包含特殊符号的字幕项
-            const subtitles = subtitlesRaw.filter(item => {
-              const text = item.text || "";
-              return !text.includes("{\\") && !text.includes("♪") && !text.includes("{\\fs") && !text.includes("{\\an") && !text.includes("{\\fad");
-            }).map((item, index) => {
-              // 分离中英文字幕内容
-              const lines = item.text.split("\n");
-              return {
-                zhContent: lines[0]?.trim() || "",         // 中文字幕内容
-                esContent: lines[1]?.trim() || "",         // 英文字幕内容
-                content: item.text.trim(),                 // 原始字幕内容
-                startTime: item.startTime,                 // 字幕开始时间
-                endTime: item.endTime,                     // 字幕结束时间
-                subtitleId: `${movieInfo.id}-${index}`,    // 字幕ID
-                movieId: movieInfo.id,                     // 电影ID
-                title: movieInfo.nm,                       // 电影名称
-                coverUrl: imgUrl,                          // 电影封面URL
-                moviesInfo: movieInfo,                     // 电影信息
-                index
-              };
-            });
+          try {
+            const res = await GetMaoyan(query, false);
+            if (res?.movies?.list?.length) {
+              // 获取第一个匹配的电影信息
+              const movieInfo = res.movies.list[0];
+              // 处理电影封面图片URL
+              const imgUrl = movieInfo.img.replace(/thumbnail\/\d+x\d+/, `thumbnail/${ImgSize}`);
 
-            // 构造处理后的SRT内容
-            const processedSrtContent = subtitles.map((item, index) => `
+              // 读取文件内容
+              const fileContent = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsText(file, 'utf-8');
+              });
+
+              // 解析SRT字幕文件
+              const parser = new srtParser2();
+              const subtitlesRaw = parser.fromSrt(fileContent || "");
+              // 过滤掉包含特殊符号的字幕项
+              const subtitles = subtitlesRaw.filter(item => {
+                const text = item.text || "";
+                return !text.includes("{\\") && !text.includes("♪") && !text.includes("{\\fs") && !text.includes("{\\an") && !text.includes("{\\fad");
+              }).map((item, index) => {
+                // 分离中英文字幕内容
+                const lines = item.text.split("\n");
+                return {
+                  zhContent: lines[0]?.trim() || "",         // 中文字幕内容
+                  esContent: lines[1]?.trim() || "",         // 英文字幕内容
+                  content: item.text.trim(),                 // 原始字幕内容
+                  startTime: item.startTime,                 // 字幕开始时间
+                  endTime: item.endTime,                     // 字幕结束时间
+                  subtitleId: `${movieInfo.id}-${index}`,    // 字幕ID
+                  movieId: movieInfo.id,                     // 电影ID
+                  title: movieInfo.nm,                       // 电影名称
+                  coverUrl: imgUrl,                          // 电影封面URL
+                  moviesInfo: movieInfo,                     // 电影信息
+                  index
+                };
+              });
+
+              // 构造处理后的SRT内容
+              const processedSrtContent = subtitles.map((item, index) => `
 ${index + 1}
 ${item.startTime} --> ${item.endTime}
 ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
 
-            // 构造电影数据对象
-            const movieData = {
-              title: movieInfo.nm,
-              coverUrl: imgUrl,
-              moviesInfo: movieInfo,
-              id: movieInfo.id,
-              movieSubtitleFiles: processedSrtContent,
-              // 保存原始文件名用于LeanCloud上传
-              originalFileName: file.name,
-              subtitleData: subtitles
-            };
+              // 校验 id 和 title 在 LeanCloud 中的唯一性
+              const isDuplicateInDB = await this.checkMovieDataDuplicate(movieInfo.id, movieInfo.nm);
+              if (isDuplicateInDB) {
+                this.$Message.warning(`电影 "${movieInfo.nm}" (ID: ${movieInfo.id}) 在数据库中已存在，跳过重复数据`);
+                // 添加失败记录
+                this.uploadProgressList.push({
+                  fileName: file.name, 
+                  title: movieInfo.nm, 
+                  id: movieInfo.id, 
+                  coverUrl: imgUrl, 
+                  status: "失败（数据库重复）"
+                });
+                continue;
+              }
 
-            // 将处理后的数据添加到列表中
-            this.movieDataList.push(movieData);
-            
-            // 构造上传进度列表项，包含moviesInfo中的字段信息
+              // 构造电影数据对象
+              const movieData = {
+                title: movieInfo.nm,
+                coverUrl: imgUrl,
+                moviesInfo: movieInfo,
+                id: movieInfo.id,
+                movieSubtitleFiles: processedSrtContent,
+                // 保存原始文件名用于LeanCloud上传
+                originalFileName: file.name,
+                subtitleData: subtitles
+              };
+
+              // 将处理后的数据添加到列表中
+              this.movieDataList.push(movieData);
+
+              // 构造上传进度列表项，包含moviesInfo中的字段信息
+              this.uploadProgressList.push({
+                fileName: file.name,
+                title: movieInfo.nm,
+                id: movieInfo.id,
+                coverUrl: imgUrl,
+                status: "成功",
+                sc: movieInfo.sc,           // 电影评分
+                cat: movieInfo.cat,         // 电影类型
+                rt: movieInfo.rt,           // 上映日期
+                star: movieInfo.star,       // 演员信息
+                dir: movieInfo.dir,         // 导演
+                src: movieInfo.src,         // 地区
+                ver: movieInfo.ver          // 版本
+              });
+            } else {
+              // 如果未找到电影信息，添加失败记录
+              this.uploadProgressList.push({
+                fileName: file.name, 
+                title, 
+                id: "", 
+                coverUrl: "", 
+                status: "失败"
+              });
+            }
+          } catch (err) {
+            // 处理异常情况
+            console.error(file.name, err);
             this.uploadProgressList.push({
               fileName: file.name, 
-              title: movieInfo.nm, 
-              id: movieInfo.id, 
-              coverUrl: imgUrl, 
-              status: "成功",
-              sc: movieInfo.sc,           // 电影评分
-              cat: movieInfo.cat,         // 电影类型
-              rt: movieInfo.rt,           // 上映日期
-              star: movieInfo.star,       // 演员信息
-              dir: movieInfo.dir,         // 导演
-              src: movieInfo.src,         // 地区
-              ver: movieInfo.ver          // 版本
+              title, 
+              id: "", 
+              coverUrl: "", 
+              status: "失败"
             });
-          } else {
-            // 如果未找到电影信息，添加失败记录
-            this.uploadProgressList.push({fileName: file.name, title, id: "", coverUrl: "", status: "失败"});
           }
-        } catch (err) {
-          // 处理异常情况
-          console.error(file.name, err);
-          this.uploadProgressList.push({fileName: file.name, title, id: "", coverUrl: "", status: "失败"});
+
+          // 更新总进度
+          this.totalProgress.current = i + 1;
+          this.totalProgress.percent = Math.round((this.totalProgress.current / this.totalProgress.total) * 100);
+
+          // 更新汇总信息
+          this.updateUploadSummary();
         }
 
-        // 添加延迟以避免请求过于频繁
-        await new Promise(r => setTimeout(r, 800));
-      }
+        // 所有文件处理完成后更新进度状态
+        this.totalProgress.status = 'success';
 
-      // 处理完成后，根据默认上传开关决定是否显示提示框
-      if (this.isDefaultUpload) {
-        // 开关开启时，自动执行后续操作，不显示提示框
-        await this.handleAutoProcess();
-      } else {
-        // 开关关闭时，显示处理完成弹窗
-        this.$Modal.confirm({
-          title: "字幕文件处理完毕",
-          content: `共处理 ${fileList.length} 个文件，是否执行后续操作？`,
-          onOk: async () => {
-            const successList = this.movieDataList;
-            // 检查是否开启了任何操作
-            if (!this.isUploadToLeanCloud && !this.isExportJSON) {
-              this.$Message.warning("未开启上传或导出操作，请检查开关设置");
+        // 清除定时器
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        // 处理完成后，根据默认上传开关决定是否显示提示框
+        if (this.isDefaultUpload) {
+          // 开关开启时，自动执行后续操作，不显示提示框
+          await this.handleAutoProcess();
+        } else {
+          // 开关关闭时，显示处理完成弹窗
+          this.$Modal.confirm({
+            title: "字幕文件处理完毕",
+            content: `共处理 ${fileList.length} 个文件，是否执行后续操作？`,
+            onOk: async () => {
+              const successList = this.movieDataList;
+              // 检查是否开启了任何操作
+              if (!this.isUploadToLeanCloud && !this.isExportJSON) {
+                this.$Message.warning("未开启上传或导出操作，请检查开关设置");
+                this.isProcessing = false;
+                handleLoading(false);
+                // 隐藏总进度条
+                this.totalProgress.show = false;
+                return;
+              }
+
+              // 执行上传操作（如果开启）
+              let hasError = false;
+              if (this.isUploadToLeanCloud && successList.length > 0) {
+                try {
+                  await this.uploadMovieData(successList);
+                } catch (err) {
+                  hasError = true;
+                  console.error(err);
+                }
+              }
+
+              // 执行导出操作（如果开启）
+              if (this.isExportJSON) this.exportJSON(successList, "subtitleData");
+
+              // 完成所有操作后更新状态和隐藏loading
               this.isProcessing = false;
               handleLoading(false);
-              return;
-            }
+              // 隐藏总进度条
+              this.totalProgress.show = false;
 
-            // 执行上传操作（如果开启）
-            let hasError = false;
-            if (this.isUploadToLeanCloud && successList.length > 0) {
-              try {
-                await this.uploadMovieData(successList);
-              } catch (err) {
-                hasError = true;
-                console.error(err);
+              // 显示操作结果消息
+              if (!hasError) {
+                this.$Message.success("所有操作已完成！");
+              } else {
+                this.$Message.error("部分操作执行失败，请查看控制台");
               }
+            },
+            onCancel: () => {
+              // 取消操作时更新状态和隐藏loading
+              this.isProcessing = false;
+              handleLoading(false);
+              // 隐藏总进度条
+              this.totalProgress.show = false;
             }
-
-            // 执行导出操作（如果开启）
-            if (this.isExportJSON) this.exportJSON(successList, "subtitleData");
-
-            // 完成所有操作后更新状态和隐藏loading
-            this.isProcessing = false;
-            handleLoading(false);
-
-            // 显示操作结果消息
-            if (!hasError) {
-              this.$Message.success("所有操作已完成！");
-            } else {
-              this.$Message.error("部分操作执行失败，请查看控制台");
-            }
-          },
-          onCancel: () => {
-            // 取消操作时更新状态和隐藏loading
-            this.isProcessing = false;
-            handleLoading(false);
-          }
-        });
+          });
+        }
+      } catch (error) {
+        console.error("处理字幕文件时发生错误:", error);
+        this.totalProgress.status = 'error';
+        this.$Message.error("处理字幕文件时发生错误: " + error.message);
+        // 发生错误时关闭loading
+        this.isProcessing = false;
+        handleLoading(false);
+        // 隐藏总进度条
+        this.totalProgress.show = false;
+      } finally {
+        // 确保在所有情况下都关闭loading
+        if (this.isProcessing) {
+          this.isProcessing = false;
+          handleLoading(false);
+        }
+        // 隐藏总进度条
+        this.totalProgress.show = false;
       }
     },
 
@@ -525,6 +739,8 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
         this.$Message.warning("未开启上传或导出操作，请检查开关设置");
         this.isProcessing = false;
         handleLoading(false);
+        // 隐藏总进度条
+        this.totalProgress.show = false;
         return;
       }
 
@@ -545,6 +761,8 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
       // 完成所有操作后更新状态和隐藏loading
       this.isProcessing = false;
       handleLoading(false);
+      // 隐藏总进度条
+      this.totalProgress.show = false;
 
       // 显示操作结果消息
       if (!hasError) {
@@ -579,7 +797,7 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
       }
 
       // 根据选中的行ID找到对应的movieData
-      const selectedMovieData = this.movieDataList.filter(movie => 
+      const selectedMovieData = this.movieDataList.filter(movie =>
         selectedSuccessRows.some(row => row.id === movie.id)
       );
 
@@ -609,6 +827,13 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
         handleLoading(true, "正在上传到 LeanCloud...");
         // 遍历电影数据列表并逐个上传
         for (let item of list) {
+          // 检查LeanCloud中是否已存在相同 id 和 title 的数据
+          const isDuplicateInDB = await this.checkMovieDataDuplicate(item.id, item.title);
+          if (isDuplicateInDB) {
+            this.$Message.warning(`电影 "${item.title}" (ID: ${item.id}) 在数据库中已存在，跳过上传`);
+            continue;
+          }
+
           // 创建LeanCloud对象
           const MovieData = this.$leancloud.Object.extend("movieData");
           const movie = new MovieData();
@@ -843,11 +1068,11 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
   .options-section .switch-item {
     padding: 12px 15px;
   }
-  
+
   .card-header {
     flex-wrap: wrap;
   }
-  
+
   .toolbar {
     margin-left: 0;
     margin-top: 10px;

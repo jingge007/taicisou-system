@@ -29,6 +29,8 @@
           border
           :columns="tableColumns"
           :data="tableData"
+          size="small"
+          class="progress-table"
           :max-height="580"
           @on-selection-change="handleSelectionChange">
         </Table>
@@ -83,6 +85,13 @@
         </Row>
       </Form>
     </Modal>
+    
+    <!-- 使用公共的字幕预览组件 -->
+    <SubtitlePreviewModal 
+      v-model="subtitleModalVisible" 
+      :subtitle-data="currentSubtitleData"
+      @close="subtitleModalVisible = false">
+    </SubtitlePreviewModal>
   </div>
 </template>
 
@@ -94,6 +103,7 @@
 /deep/ .ivu-form-item-label {
   font-weight: bold;
 }
+
 </style>
 
 <style lang="less">
@@ -140,6 +150,26 @@
     border-radius: 4px;
   }
 }
+
+.progress-table /deep/ .ivu-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+}
+
+.progress-table /deep/ .ivu-table td {
+  border-bottom: 1px solid #eee;
+}
+
+.progress-table /deep/ .ivu-table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.progress-table /deep/ .ivu-table:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 </style>
 
 <script type="text/ecmascript-6">
@@ -149,6 +179,9 @@ import tools from '@/utils/tools';
 export default {
   name: "movieSubtitles",
   mixins: [commonMixin],
+  components: {
+    SubtitlePreviewModal: () => import('@/components/SubtitlePreviewModal.vue')
+  },
   data() {
     // 表单验证规则
     const requiredRule = (message) => [{required: true, message, trigger: 'blur'}];
@@ -178,19 +211,26 @@ export default {
         {
           type: 'selection',
           width: 60,
-          align: 'center'
+          align: 'center',
+          fixed: 'left'
         },
         {
-          title: 'ID',
-          key: 'id',
-          align: 'center',
+          title: "电影ID",
+          key: "id",
           width: 100,
+          align: 'center',
+          minWidth: 100
         },
         {
-          title: '海报封面',
-          key: 'coverUrl',
-          align: 'center',
-          minWidth: 100,
+          title: "电影名",
+          key: "title",
+          minWidth: 150,
+          ellipsis: true
+        },
+        {
+          title: "封面",
+          key: "coverUrl",
+          minWidth: 150,
           render: (h, params) => {
             if (params.row.coverUrl) {
               return h('div', {
@@ -202,7 +242,10 @@ export default {
                 }
               }, [
                 h('img', {
-                  attrs: {src: params.row.coverUrl},
+                  attrs: {
+                    src: params.row.coverUrl,
+                    'data-source': params.row.coverUrl
+                  },
                   style: {
                     width: '80px',
                     height: '100px',
@@ -218,53 +261,100 @@ export default {
           }
         },
         {
-          title: '电影名称',
-          key: 'title',
-          align: 'center',
+          title: "电影评分",
+          key: "sc",
+          minWidth: 120,
+          align: 'center'
+        },
+        {
+          title: "电影类型",
+          key: "cat",
+          minWidth: 120,
+          align: 'center'
+        },
+        {
+          title: "上映日期",
+          key: "rt",
+          minWidth: 120,
+          align: 'center'
+        },
+        {
+          title: "演员信息",
+          key: "star",
           minWidth: 150,
+          align: 'center'
         },
         {
-          title: '创建时间',
-          key: 'createdAt',
-          align: 'center',
-          minWidth: 180,
-          render: (h, params) => {
-            const date = params.row.createdAt;
-            if (date) {
-              return h('span', tools.formatDate(new Date(date)));
-            }
-            return h('span', '无');
-          }
+          title: "导演",
+          key: "dir",
+          minWidth: 150,
+          align: 'center'
         },
         {
-          title: '更新时间',
-          key: 'updatedAt',
-          align: 'center',
-          minWidth: 180,
-          render: (h, params) => {
-            const date = params.row.updatedAt;
-            if (date) {
-              return h('span', tools.formatDate(new Date(date)));
-            }
-            return h('span', '无');
-          }
+          title: "地区",
+          key: "src",
+          minWidth: 120,
+          align: 'center'
         },
         {
-          title: '操作',
-          key: 'action',
-          width: 160,
-          align: 'center',
+          title: "版本",
+          key: "ver",
+          minWidth: 140,
+          align: 'center'
+        },
+        {
+          title: "操作",
+          key: "action",
+          minWidth: 250,
+          align: "center",
+          fixed: "right",
           render: (h, params) => {
-            return h('div', [
-              h('Button', {
-                props: {type: 'primary', size: 'small'},
-                style: {marginRight: '5px'},
-                on: {click: () => this.handleEdit(params.row)}
-              }, '编辑'),
-              h('Button', {
-                props: {type: 'error', size: 'small'},
-                on: {click: () => this.handleDelete(params.row)}
-              }, '删除')
+            return h("div", [
+              h("Button", {
+                props: {type: "primary", size: "small"},
+                style: {marginRight: "10px"},
+                on: {
+                  click: () => {
+                    // 下载字幕文件
+                    const movieData = this.tableData.find(item => item.id === params.row.id);
+                    if (movieData) {
+                      const blob = new Blob([movieData.movieSubtitleFiles], {type: "text/plain;charset=utf-8"});
+                      const link = document.createElement('a');
+                      link.href = URL.createObjectURL(blob);
+                      link.download = `${movieData.title}.srt`;
+                      link.click();
+                      URL.revokeObjectURL(link.href);
+                      this.$Message.success('字幕文件下载成功');
+                    }
+                  }
+                }
+              }, "下载"),
+              h("Button", {
+                props: {type: "info", size: "small"},
+                style: {marginRight: "10px"},
+                on: {
+                  click: () => {
+                    // 查看字幕内容
+                    const movieData = this.tableData.find(item => item.id === params.row.id);
+                    if (movieData) {
+                      // 计算字幕条数
+                      this.currentSubtitleData = movieData;
+                      this.subtitleCount = movieData.movieSubtitleFiles ? 
+                        movieData.movieSubtitleFiles.split('\n\n').filter(item => item.trim() !== '').length : 0;
+                      this.subtitleModalVisible = true;
+                    }
+                  }
+                }
+              }, "查看"),
+              h("Button", {
+                props: {type: "error", size: "small"},
+                on: {
+                  click: () => {
+                    // 删除记录
+                    this.handleDelete(params.row);
+                  }
+                }
+              }, "删除")
             ]);
           }
         }
@@ -283,7 +373,10 @@ export default {
       },
       currentRow: null,
       previewImages: [],
-      sortOrder: 'desc' // 默认按创建时间降序排列
+      sortOrder: 'desc', // 默认按创建时间降序排列
+      subtitleModalVisible: false,
+      currentSubtitleData: null,
+      subtitleCount: 0
     }
   },
   created() {
@@ -308,7 +401,8 @@ export default {
     // 获取列表数据
     async getList() {
       try {
-        const query = new this.$leancloud.Query('subtitleData');
+        // 修改为查询 movieData 表
+        const query = new this.$leancloud.Query('movieData');
 
         // 添加模糊搜索条件
         if (this.searchForm.movieName) {
@@ -326,14 +420,14 @@ export default {
         const results = await query.find();
 
         // 获取总数（同样应用搜索条件）
-        const totalQuery = new this.$leancloud.Query('subtitleData');
+        const totalQuery = new this.$leancloud.Query('movieData');
         if (this.searchForm.movieName) {
           totalQuery.contains('title', this.searchForm.movieName);
         }
 
         this.total = await totalQuery.count();
 
-        // 直接使用原始返回数据，但提取电影信息用于展示
+        // 处理返回数据
         this.tableData = results.map(item => {
           const data = item.toJSON();
           
@@ -350,22 +444,23 @@ export default {
             updatedAt = updatedAt.toDate();
           }
           
-          // 从moviesInfo中提取电影信息用于展示
-          let movieTitle = data.title;
-          let movieId = data.id;
-          let coverUrl = data.coverUrl;
-          
+          // 从 moviesInfo 提取电影信息
+          let movieInfo = {};
           if (data.moviesInfo) {
-            movieTitle = data.moviesInfo.nm || data.title;
-            movieId = data.moviesInfo.id || data.id;
-            coverUrl = data.moviesInfo.img || data.coverUrl;
+            movieInfo = {
+              sc: data.moviesInfo.sc,     // 电影评分
+              cat: data.moviesInfo.cat,   // 电影类型
+              rt: data.moviesInfo.rt,     // 上映日期
+              star: data.moviesInfo.star, // 演员信息
+              dir: data.moviesInfo.dir,   // 导演
+              src: data.moviesInfo.src,   // 地区
+              ver: data.moviesInfo.ver    // 版本
+            };
           }
-
+          
           return {
             ...data,
-            title: movieTitle,
-            id: movieId,
-            coverUrl: coverUrl,
+            ...movieInfo,
             key: data.objectId,
             createdAt,
             updatedAt
@@ -380,8 +475,8 @@ export default {
     // 统计唯一电影数量
     async countUniqueMovies() {
       try {
-        // 获取所有字幕数据（支持超过1000条记录）
-        const query = new this.$leancloud.Query('subtitleData');
+        // 修改为查询 movieData 表
+        const query = new this.$leancloud.Query('movieData');
         
         // 如果有搜索条件，也应用到统计查询中
         if (this.searchForm.movieName) {
@@ -395,7 +490,7 @@ export default {
         let hasMore = true;
         
         while (hasMore) {
-          const batchQuery = new this.$leancloud.Query('subtitleData');
+          const batchQuery = new this.$leancloud.Query('movieData');
           if (this.searchForm.movieName) {
             batchQuery.contains('title', this.searchForm.movieName);
           }
@@ -419,13 +514,8 @@ export default {
         for (const item of allResults) {
           const data = item.toJSON();
           
-          // 获取电影ID（从moviesInfo或直接从data中获取）
-          let movieId = null;
-          if (data.moviesInfo && data.moviesInfo.id) {
-            movieId = data.moviesInfo.id;
-          } else if (data.id) {
-            movieId = data.id;
-          }
+          // 获取电影ID
+          let movieId = data.id;
           
           // 获取系统字段
           let createdAt = item.get('createdAt');
@@ -443,20 +533,8 @@ export default {
           if (movieId && !movieMap.has(movieId)) {
             movieMap.set(movieId, true);
             
-            // 提取电影信息用于展示
-            let movieTitle = data.title;
-            let coverUrl = data.coverUrl;
-            
-            if (data.moviesInfo) {
-              movieTitle = data.moviesInfo.nm || data.title;
-              coverUrl = data.moviesInfo.img || data.coverUrl;
-            }
-            
             movieData.push({
               ...data,
-              title: movieTitle,
-              id: movieId,
-              coverUrl: coverUrl,
               createdAt,
               updatedAt
             });
@@ -507,23 +585,11 @@ export default {
       this.editMode = true;
       this.currentRow = row;
 
-      // 从moviesInfo中提取电影信息用于编辑
-      let movieInfo = {};
-      if (row.moviesInfo) {
-        movieInfo = {
-          title: row.moviesInfo.nm || row.title,
-          id: row.moviesInfo.id || row.id,
-          coverUrl: row.moviesInfo.img || row.coverUrl
-        };
-      } else {
-        movieInfo = {
-          title: row.title,
-          id: row.id,
-          coverUrl: row.coverUrl
-        };
-      }
-
-      this.formData = {...movieInfo};
+      this.formData = {
+        title: row.title,
+        id: row.id,
+        coverUrl: row.coverUrl
+      };
       this.modalVisible = true;
     },
 
@@ -544,15 +610,29 @@ export default {
     // 实际保存数据的方法
     async saveData() {
       try {
+        // 检查数据库中是否已存在相同 id 和 title 的数据
+        if (!this.editMode) {
+          // 新增模式下检查唯一性
+          const query = new this.$leancloud.Query('movieData');
+          query.equalTo('id', this.formData.id);
+          query.equalTo('title', this.formData.title);
+          
+          const count = await query.count();
+          if (count > 0) {
+            this.$Message.warning(`电影 "${this.formData.title}" (ID: ${this.formData.id}) 在数据库中已存在`);
+            return;
+          }
+        }
+        
         let item;
         if (this.editMode) {
           // 编辑模式
-          item = this.$leancloud.Object.createWithoutData('subtitleData', this.currentRow.objectId);
+          item = this.$leancloud.Object.createWithoutData('movieData', this.currentRow.objectId);
           this.$Message.success('更新成功');
         } else {
           // 新增模式
-          const SubtitleData = this.$leancloud.Object.extend('subtitleData');
-          item = new SubtitleData();
+          const MovieData = this.$leancloud.Object.extend('movieData');
+          item = new MovieData();
           this.$Message.success('新增成功');
         }
 
@@ -583,10 +663,10 @@ export default {
     handleDelete(row) {
       this.$Modal.confirm({
         title: '确认删除',
-        content: '确定要删除这条数据吗？',
+        content: '确定要删除这条电影信息吗？',
         onOk: async () => {
           try {
-            const item = this.$leancloud.Object.createWithoutData('subtitleData', row.objectId);
+            const item = this.$leancloud.Object.createWithoutData('movieData', row.objectId);
             await item.destroy();
             this.$Message.success('删除成功');
             this.getList();
@@ -602,11 +682,11 @@ export default {
     handleBatchDelete() {
       this.$Modal.confirm({
         title: '确认删除',
-        content: `确定要删除选中的${this.selectedRows.length}条数据吗？`,
+        content: `确定要删除选中的${this.selectedRows.length}条电影信息吗？`,
         onOk: async () => {
           try {
             const objects = this.selectedRows.map(row =>
-              this.$leancloud.Object.createWithoutData('subtitleData', row.objectId)
+              this.$leancloud.Object.createWithoutData('movieData', row.objectId)
             );
             await this.$leancloud.Object.destroyAll(objects);
             this.$Message.success('批量删除成功');

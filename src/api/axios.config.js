@@ -25,7 +25,7 @@ function startLoading () {
             marginTop: '5px',
             fontSize: '17px'
           }
-        }, '加载中...')
+        }, '处理中...')
       ]);
     }
   });
@@ -66,7 +66,9 @@ axios.interceptors.request.use(
   });
 axios.interceptors.response.use(
   response => {
-    tryHideFullScreenLoading();
+    if (response.config.endLoading) {
+      tryHideFullScreenLoading();
+    }
     if (response.config.isbaseUrl) {
       if (response.status == 200) {
         let data = response.data.split(/\n\s\n/);
