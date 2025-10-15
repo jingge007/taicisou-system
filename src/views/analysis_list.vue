@@ -8,8 +8,7 @@
             multiple
             action="*"
             type="drag"
-            :before-upload="handleBeforeUpload"
-          >
+            :before-upload="handleBeforeUpload">
             <div class="upload-content">
               <Icon type="ios-cloud-upload" size="40" class="upload-icon"/>
               <p class="upload-text">单击或拖动字幕文件上传</p>
@@ -59,9 +58,16 @@
         <Progress
           :percent="totalProgress.percent"
           :status="totalProgress.status"
-          :stroke-width="20">
-          <span>{{ totalProgress.current }} / {{ totalProgress.total }}</span>
+          :stroke-width="20"
+          :class="{
+            'success-progress': totalProgress.status === 'success',
+            'error-progress': totalProgress.status === 'error'
+          }">
+          <span>{{ totalProgress.percent }}%</span>
         </Progress>
+        <div class="progress-text">
+          <span>已完成: {{ totalProgress.current }} / {{ totalProgress.total }}</span>
+        </div>
       </div>
     </Card>
 
@@ -82,9 +88,13 @@
             <span style="font-size: 14px; color: #515a6e; margin-right: 5px;">成功:</span>
             <Tag color="success">{{ uploadSummary.success }}</Tag>
           </div>
-          <div style="display: flex; align-items: center;">
+          <div style="display: flex; align-items: center; margin-right: 20px;">
             <span style="font-size: 14px; color: #515a6e; margin-right: 5px;">失败:</span>
             <Tag color="error">{{ uploadSummary.failed }}</Tag>
+          </div>
+          <div v-if="skippedDataList.length > 0" style="display: flex; align-items: center;">
+            <span style="font-size: 14px; color: #515a6e; margin-right: 5px;">跳过:</span>
+            <Tag color="warning">{{ skippedDataList.length }}</Tag>
           </div>
         </div>
 
@@ -95,6 +105,13 @@
             @click="handleBatchUpload"
             style="margin-left: 10px;">
             批量上传选中数据
+          </Button>
+          <Button
+            v-if="skippedDataList.length > 0"
+            type="warning"
+            @click="showSkippedData"
+            style="margin-left: 10px;">
+            查看跳过数据
           </Button>
         </div>
       </div>
@@ -118,6 +135,21 @@
         @close="subtitlePreviewVisible = false">
       </SubtitlePreviewModal>
     </Card>
+
+    <!-- 跳过数据模态框 -->
+    <Modal
+      v-model="skippedDataModalVisible"
+      title="跳过的重复数据"
+      width="1000"
+      :footer-hide="true">
+      <Table
+        border
+        :columns="skippedDataColumns"
+        :data="skippedDataList"
+        size="small"
+        :max-height="400">
+      </Table>
+    </Modal>
   </div>
 </template>
 
@@ -127,6 +159,7 @@ import FileSaver from "file-saver";
 import srtParser2 from "srt-parser-2";
 import {handleLoading, ImgSize} from "@/utils/common";
 import {GetMaoyan} from "@/api/api";
+import tools from "@/utils/tools";
 
 export default {
   components: {
@@ -191,8 +224,40 @@ export default {
         {
           title: "电影名",
           key: "title",
-          minWidth: 150,
-          ellipsis: true
+          minWidth: 250,
+          ellipsis: true,
+          render: (h, params) => {
+            return h('div', {
+              style: {
+                display: 'flex',
+                alignItems: 'center'
+              }
+            }, [
+              h('span', {
+                style: {
+                  flex: 1,
+                  marginRight: '10px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }
+              }, params.row.title),
+              h('Icon', {
+                props: {
+                  type: 'md-copy',
+                  size: '16'
+                },
+                style: {
+                  cursor: 'pointer',
+                  color: '#2d8cf0'
+                },
+                on: {
+                  click: () => {
+                    this.copyMovieTitle(params.row.title);
+                  }
+                }
+              })
+            ]);
+          }
         },
         {
           title: "状态",
@@ -376,8 +441,84 @@ export default {
       ],
       // 新增用于字幕预览的数据
       subtitlePreviewData: null,
-      subtitlePreviewVisible: false
+      subtitlePreviewVisible: false,
+      // 跳过的重复数据列表
+      skippedDataList: [],
+      // 跳过数据模态框显示控制
+      skippedDataModalVisible: false
     };
+  },
+  computed: {
+    // 跳过数据表格列定义
+    skippedDataColumns() {
+      return [
+        {
+          title: "文件名",
+          key: "fileName",
+          minWidth: 150,
+          ellipsis: true
+        },
+        {
+          title: "电影ID",
+          key: "id",
+          width: 100,
+          align: 'center'
+        },
+        {
+          title: "电影名",
+          key: "title",
+          minWidth: 150,
+          ellipsis: true,
+          render: (h, params) => {
+            return h('div', {
+              style: {
+                display: 'flex',
+                alignItems: 'center'
+              }
+            }, [
+              h('span', {
+                style: {
+                  flex: 1,
+                  marginRight: '10px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }
+              }, params.row.title),
+              h('Icon', {
+                props: {
+                  type: 'md-copy',
+                  size: '16'
+                },
+                style: {
+                  cursor: 'pointer',
+                  color: '#2d8cf0'
+                },
+                on: {
+                  click: () => {
+                    this.copyMovieTitle(params.row.title);
+                  }
+                }
+              })
+            ]);
+          }
+        },
+        {
+          title: "跳过原因",
+          key: "reason",
+          width: 150,
+          align: 'center'
+        },
+        {
+          title: "跳过时间",
+          key: "skipTime",
+          width: 180,
+          align: 'center',
+          render: (h, params) => {
+            return h('span', tools.formatDate(params.row.skipTime));
+          }
+        }
+      ];
+    }
   },
   methods: {
     /**
@@ -390,7 +531,7 @@ export default {
         this.$Message.error("只能上传 .srt 格式文件");
         return false;
       }
-      
+
       // 校验文件名的唯一性
       if (this.filesData.some(f => f.name === file.name)) {
         this.$Message.error(`文件 ${file.name} 已存在，请勿重复上传`);
@@ -404,7 +545,7 @@ export default {
         this.updateUploadSummary();
         return false;
       }
-      
+
       this.filesData.push({
         name: file.name,
         file: file,
@@ -451,10 +592,10 @@ export default {
     updateUploadSummary() {
       // 总数为处理的文件数，包括成功和各种失败情况
       const total = this.uploadProgressList.length;
-      
+
       // 成功处理的文件数
       const success = this.uploadProgressList.filter(item => item.status === "成功").length;
-      
+
       // 失败的文件数
       const failed = total - success;
 
@@ -463,6 +604,26 @@ export default {
         success,
         failed
       };
+    },
+
+    /**
+     * 显示跳过数据模态框
+     */
+    showSkippedData() {
+      this.skippedDataModalVisible = true;
+    },
+
+
+    /**
+     * 复制电影名到剪贴板
+     * @param {string} title - 电影名
+     */
+    copyMovieTitle(title) {
+      tools.copyText(title).then(() => {
+        this.$Message.success('电影名已复制到剪贴板');
+      }).catch(() => {
+        this.$Message.error('复制失败');
+      });
     },
 
     /**
@@ -477,6 +638,7 @@ export default {
       // 初始化数据列表和进度列表
       this.uploadProgressList = [];
       this.movieDataList = [];
+      this.skippedDataList = []; // 清空跳过数据列表
       this.isProcessing = true; // 设置处理状态为true
       // 初始化总进度
       this.totalProgress = {
@@ -492,33 +654,33 @@ export default {
         success: 0,
         failed: 0
       };
-      
+
       try {
         // 启动定时器显示加载状态
         timer = setTimeout(() => {
           handleLoading(true, "处理中...");
         }, 100);
-        
+
         // 依次处理每个文件
         for (let i = 0; i < fileList.length; i++) {
           const fileItem = fileList[i];
           const file = fileItem.file || fileItem; // 兼容新旧数据结构
           const isDuplicateFile = fileItem.duplicate || false; // 检查是否为重复文件
-          
+
           // 如果是重复文件，直接添加到失败列表中
           if (isDuplicateFile) {
             this.uploadProgressList.push({
-              fileName: file.name, 
-              title: file.name.replace(".srt", ""), 
-              id: "", 
-              coverUrl: "", 
+              fileName: file.name,
+              title: file.name.split(".srt")[0],
+              id: "",
+              coverUrl: "",
               status: "失败（文件重复）"
             });
             continue;
           }
-          
+
           // 从文件名提取电影标题（去除.srt扩展名）
-          const title = file.name.replace(".srt", "");
+          const title = file.name.split(".srt")[0];
           // 构造查询参数
           const query = {kw: title, cityId: 30, stype: -1, WuKongReady: "h5"};
 
@@ -575,11 +737,21 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
                 this.$Message.warning(`电影 "${movieInfo.nm}" (ID: ${movieInfo.id}) 在数据库中已存在，跳过重复数据`);
                 // 添加失败记录
                 this.uploadProgressList.push({
-                  fileName: file.name, 
-                  title: movieInfo.nm, 
-                  id: movieInfo.id, 
-                  coverUrl: imgUrl, 
+                  fileName: file.name,
+                  title: movieInfo.nm,
+                  id: movieInfo.id,
+                  coverUrl: imgUrl,
                   status: "失败（数据库重复）"
+                });
+
+                // 记录跳过的数据
+                this.skippedDataList.push({
+                  fileName: file.name,
+                  title: movieInfo.nm,
+                  id: movieInfo.id,
+                  coverUrl: imgUrl,
+                  reason: "数据库中已存在",
+                  skipTime: new Date()
                 });
                 continue;
               }
@@ -591,8 +763,6 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
                 moviesInfo: movieInfo,
                 id: movieInfo.id,
                 movieSubtitleFiles: processedSrtContent,
-                // 保存原始文件名用于LeanCloud上传
-                originalFileName: file.name,
                 subtitleData: subtitles
               };
 
@@ -617,10 +787,10 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
             } else {
               // 如果未找到电影信息，添加失败记录
               this.uploadProgressList.push({
-                fileName: file.name, 
-                title, 
-                id: "", 
-                coverUrl: "", 
+                fileName: file.name,
+                title,
+                id: "",
+                coverUrl: "",
                 status: "失败"
               });
             }
@@ -628,10 +798,10 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
             // 处理异常情况
             console.error(file.name, err);
             this.uploadProgressList.push({
-              fileName: file.name, 
-              title, 
-              id: "", 
-              coverUrl: "", 
+              fileName: file.name,
+              title,
+              id: "",
+              coverUrl: "",
               status: "失败"
             });
           }
@@ -655,51 +825,13 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
         // 处理完成后，根据默认上传开关决定是否显示提示框
         if (this.isDefaultUpload) {
           // 开关开启时，自动执行后续操作，不显示提示框
-          await this.handleAutoProcess();
+          await this.handlePostProcess();
         } else {
           // 开关关闭时，显示处理完成弹窗
           this.$Modal.confirm({
             title: "字幕文件处理完毕",
             content: `共处理 ${fileList.length} 个文件，是否执行后续操作？`,
-            onOk: async () => {
-              const successList = this.movieDataList;
-              // 检查是否开启了任何操作
-              if (!this.isUploadToLeanCloud && !this.isExportJSON) {
-                this.$Message.warning("未开启上传或导出操作，请检查开关设置");
-                this.isProcessing = false;
-                handleLoading(false);
-                // 隐藏总进度条
-                this.totalProgress.show = false;
-                return;
-              }
-
-              // 执行上传操作（如果开启）
-              let hasError = false;
-              if (this.isUploadToLeanCloud && successList.length > 0) {
-                try {
-                  await this.uploadMovieData(successList);
-                } catch (err) {
-                  hasError = true;
-                  console.error(err);
-                }
-              }
-
-              // 执行导出操作（如果开启）
-              if (this.isExportJSON) this.exportJSON(successList, "subtitleData");
-
-              // 完成所有操作后更新状态和隐藏loading
-              this.isProcessing = false;
-              handleLoading(false);
-              // 隐藏总进度条
-              this.totalProgress.show = false;
-
-              // 显示操作结果消息
-              if (!hasError) {
-                this.$Message.success("所有操作已完成！");
-              } else {
-                this.$Message.error("部分操作执行失败，请查看控制台");
-              }
-            },
+            onOk: () => this.handlePostProcess(),
             onCancel: () => {
               // 取消操作时更新状态和隐藏loading
               this.isProcessing = false;
@@ -730,9 +862,9 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
     },
 
     /**
-     * 自动处理数据（当默认上传开关开启时）
+     * 处理后续操作（上传到LeanCloud和导出JSON）
      */
-    async handleAutoProcess() {
+    async handlePostProcess() {
       const successList = this.movieDataList;
       // 检查是否开启了任何操作
       if (!this.isUploadToLeanCloud && !this.isExportJSON) {
@@ -831,6 +963,15 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
           const isDuplicateInDB = await this.checkMovieDataDuplicate(item.id, item.title);
           if (isDuplicateInDB) {
             this.$Message.warning(`电影 "${item.title}" (ID: ${item.id}) 在数据库中已存在，跳过上传`);
+            // 记录跳过的数据
+            this.skippedDataList.push({
+              fileName: `${item.title}.srt`,
+              title: item.title,
+              id: item.id,
+              coverUrl: item.coverUrl,
+              reason: "数据库中已存在",
+              skipTime: new Date()
+            });
             continue;
           }
 
@@ -846,8 +987,8 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
 
           // 创建并上传处理后的字幕文件
           const processedBlob = new Blob([item.movieSubtitleFiles], {type: 'text/plain'});
-          // 使用保存的原始文件名
-          const processedFile = new this.$leancloud.File(item.originalFileName, processedBlob);
+          // 使用默认的文件名
+          const processedFile = new this.$leancloud.File(`${item.title}.srt`, processedBlob);
           const uploadedProcessed = await processedFile.save();
 
           // 设置文件URL
@@ -1036,6 +1177,13 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
   margin-bottom: 16px;
 }
 
+.progress-text {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #808695;
+}
+
 .card-title {
   margin: 0;
   margin-left: 8px;
@@ -1046,6 +1194,40 @@ ${item.zhContent}${item.esContent ? '\n' + item.esContent : ''}`).join("\n\n");
 
 .header-icon {
   color: #2d8cf0;
+}
+
+.success-progress {
+  /deep/ .ivu-progress-inner {
+    background-color: #f0f9f0;
+    border: 1px solid #e1f3d8;
+  }
+
+  /deep/ .ivu-progress-bg {
+    background: linear-gradient(90deg, #67c23a, #4ebd2d);
+    box-shadow: 0 2px 4px rgba(103, 194, 58, 0.2);
+  }
+
+  /deep/ .ivu-progress-text {
+    color: #67c23a;
+    font-weight: 600;
+  }
+}
+
+.error-progress {
+  /deep/ .ivu-progress-inner {
+    background-color: #fef0f0;
+    border: 1px solid #fde2e2;
+  }
+
+  /deep/ .ivu-progress-bg {
+    background: linear-gradient(90deg, #f56c6c, #e44c4c);
+    box-shadow: 0 2px 4px rgba(245, 108, 108, 0.2);
+  }
+
+  /deep/ .ivu-progress-text {
+    color: #f56c6c;
+    font-weight: 600;
+  }
 }
 
 .toolbar {

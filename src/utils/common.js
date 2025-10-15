@@ -7,15 +7,27 @@ export const handleLoading = (loading, text) => {
   if (loading) {
     Spin.show({
       render: (h) => {
-        return h('div', [
+        return h('div', {
+          style: {
+            zIndex: 8888,
+            backgroundColor: '#fff',
+            padding: '32px 30px',
+            borderRadius: '12px'
+          }
+        }, [
           h('Icon', {
             'class': 'demo-spin-icon-load',
             props: {
               type: 'ios-loading',
-              size: 18
+              size: 28
             }
           }),
-          h('div', text)
+          h('div', {
+            style: {
+              marginTop: '5px',
+              fontSize: '17px'
+            }
+          }, text || '处理中...')
         ])
       }
     });

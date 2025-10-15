@@ -18,10 +18,7 @@
 
     <Card>
       <div style="margin-bottom: 15px;">
-        <Button type="primary" class="options_btn" @click="showAddModal">新增</Button>
-        <Button type="error" class="options_btn" :disabled="selectedRows.length === 0" @click="handleBatchDelete"
-          style="margin-left: 10px;">批量删除</Button>
-        <Button type="info" class="options_btn" @click="countUniqueMovies" style="margin-left: 10px;">统计电影总数</Button>
+        <Button type="error" class="options_btn" :disabled="selectedRows.length === 0" @click="handleBatchDelete">批量删除</Button>
       </div>
 
       <div v-viewer="viewerOptions">
@@ -50,41 +47,6 @@
         </div>
       </div>
     </Card>
-    <!-- 新增/编辑对话框 -->
-    <Modal
-      v-model="modalVisible"
-      :title="editMode ? '编辑电影字幕' : '新增电影字幕'"
-      @on-ok="handleSave"
-      @on-cancel="handleCancel"
-      class-name="movie-subtitles-modal"
-      width="800">
-      <Form :model="formData" :label-width="120" ref="form" :rules="formRules">
-        <Row :gutter="gutterItem" style="width:90%">
-          <Col :xxl="oneItemCol" :xl="oneItemCol" :lg="oneItemCol" :md="oneItemCol">
-            <FormItem label="电影名称" prop="title">
-              <Input v-model="formData.title" placeholder="请输入电影名称"/>
-            </FormItem>
-          </Col>
-          <Col :xxl="oneItemCol" :xl="oneItemCol" :lg="oneItemCol" :md="oneItemCol">
-            <FormItem label="电影ID" prop="id">
-              <Input v-model="formData.id" placeholder="请输入电影ID"/>
-            </FormItem>
-          </Col>
-          <Col :xxl="oneItemCol" :xl="oneItemCol" :lg="oneItemCol" :md="oneItemCol">
-            <FormItem label="海报图片URL" prop="coverUrl">
-              <Input v-model="formData.coverUrl" placeholder="请输入海报图片URL" show-word-limit maxlength="500"/>
-            </FormItem>
-          </Col>
-          <Col :xxl="oneItemCol" :xl="oneItemCol" :lg="oneItemCol" :md="oneItemCol">
-            <FormItem label="海报预览" v-if="formData.coverUrl && isValidImageUrl(formData.coverUrl)">
-              <div style="max-width: 100%; overflow: hidden; cursor: pointer;" v-viewer="viewerOptions">
-                <img :src="formData.coverUrl" style="max-width: 100%; max-height: 200px; border-radius: 4px;"/>
-              </div>
-            </FormItem>
-          </Col>
-        </Row>
-      </Form>
-    </Modal>
     
     <!-- 使用公共的字幕预览组件 -->
     <SubtitlePreviewModal 
@@ -189,23 +151,6 @@ export default {
     return {
       searchForm: {
         movieName: ''
-      },
-      formRules: {
-        title: requiredRule('电影名称不能为空'),
-        id: requiredRule('电影ID不能为空'),
-        coverUrl: [
-          ...requiredRule('海报图片URL不能为空'),
-          {
-            validator: (rule, value, callback) => {
-              if (value && !this.isValidImageUrl(value)) {
-                callback(new Error('请输入有效的图片链接'));
-              } else {
-                callback();
-              }
-            },
-            trigger: 'blur'
-          }
-        ]
       },
       tableColumns: [
         {
@@ -363,14 +308,7 @@ export default {
       selectedRows: [],
       total: 0,
       currentPage: 1,
-      pageSize: 10,
-      modalVisible: false,
-      editMode: false,
-      formData: {
-        title: '',
-        id: '',
-        coverUrl: ''
-      },
+      pageSize: 20,
       currentRow: null,
       previewImages: [],
       sortOrder: 'desc', // 默认按创建时间降序排列
@@ -472,85 +410,6 @@ export default {
       }
     },
 
-    // 统计唯一电影数量
-    async countUniqueMovies() {
-      try {
-        // 修改为查询 movieData 表
-        const query = new this.$leancloud.Query('movieData');
-        
-        // 如果有搜索条件，也应用到统计查询中
-        if (this.searchForm.movieName) {
-          query.contains('title', this.searchForm.movieName);
-        }
-        
-        // 使用分页方式获取所有数据
-        const allResults = [];
-        let skip = 0;
-        const limit = 1000;
-        let hasMore = true;
-        
-        while (hasMore) {
-          const batchQuery = new this.$leancloud.Query('movieData');
-          if (this.searchForm.movieName) {
-            batchQuery.contains('title', this.searchForm.movieName);
-          }
-          batchQuery.limit(limit).skip(skip);
-          
-          const batchResults = await batchQuery.find();
-          allResults.push(...batchResults);
-          
-          // 如果返回结果少于限制数量，说明已经获取完所有数据
-          if (batchResults.length < limit) {
-            hasMore = false;
-          } else {
-            skip += limit;
-          }
-        }
-        
-        // 提取电影数据并去重
-        const movieMap = new Map();
-        const movieData = [];
-        
-        for (const item of allResults) {
-          const data = item.toJSON();
-          
-          // 获取电影ID
-          let movieId = data.id;
-          
-          // 获取系统字段
-          let createdAt = item.get('createdAt');
-          let updatedAt = item.get('updatedAt');
-          
-          if (createdAt && typeof createdAt.toDate === 'function') {
-            createdAt = createdAt.toDate();
-          }
-          
-          if (updatedAt && typeof updatedAt.toDate === 'function') {
-            updatedAt = updatedAt.toDate();
-          }
-          
-          // 根据电影ID去重
-          if (movieId && !movieMap.has(movieId)) {
-            movieMap.set(movieId, true);
-            
-            movieData.push({
-              ...data,
-              createdAt,
-              updatedAt
-            });
-          }
-        }
-        
-        console.log('唯一电影总数:', movieMap.size);
-        console.log('唯一电影详细数据:', movieData);
-        
-        this.$Message.success(`查询成功，共有 ${movieMap.size} 部唯一电影，详细数据已在控制台打印`);
-      } catch (error) {
-        console.error('统计唯一电影数量失败:', error);
-        this.$Message.error('统计失败: ' + error.message);
-      }
-    },
-
     // 处理选择变化
     handleSelectionChange(selection) {
       this.selectedRows = selection;
@@ -569,96 +428,6 @@ export default {
       this.getList();
     },
 
-    // 显示新增对话框
-    showAddModal() {
-      this.editMode = false;
-      this.formData = {
-        title: '',
-        id: '',
-        coverUrl: ''
-      };
-      this.modalVisible = true;
-    },
-
-    // 编辑数据
-    handleEdit(row) {
-      this.editMode = true;
-      this.currentRow = row;
-
-      this.formData = {
-        title: row.title,
-        id: row.id,
-        coverUrl: row.coverUrl
-      };
-      this.modalVisible = true;
-    },
-
-    // 保存数据
-    handleSave() {
-      // 表单验证
-      this.$refs.form.validate(valid => {
-        if (valid) {
-          this.saveData();
-        } else {
-          this.$Message.error('请填写所有必填项并确保数据格式正确');
-          this.modalVisible = true;
-          return false;
-        }
-      });
-    },
-
-    // 实际保存数据的方法
-    async saveData() {
-      try {
-        // 检查数据库中是否已存在相同 id 和 title 的数据
-        if (!this.editMode) {
-          // 新增模式下检查唯一性
-          const query = new this.$leancloud.Query('movieData');
-          query.equalTo('id', this.formData.id);
-          query.equalTo('title', this.formData.title);
-          
-          const count = await query.count();
-          if (count > 0) {
-            this.$Message.warning(`电影 "${this.formData.title}" (ID: ${this.formData.id}) 在数据库中已存在`);
-            return;
-          }
-        }
-        
-        let item;
-        if (this.editMode) {
-          // 编辑模式
-          item = this.$leancloud.Object.createWithoutData('movieData', this.currentRow.objectId);
-          this.$Message.success('更新成功');
-        } else {
-          // 新增模式
-          const MovieData = this.$leancloud.Object.extend('movieData');
-          item = new MovieData();
-          this.$Message.success('新增成功');
-        }
-
-        // 设置数据，排除LeanCloud保留字段
-        const reservedKeys = ['objectId', 'key', 'createdAt', 'updatedAt'];
-        Object.keys(this.formData).forEach(key => {
-          // 忽略LeanCloud保留字段
-          if (!reservedKeys.includes(key)) {
-            item.set(key, this.formData[key]);
-          }
-        });
-
-        await item.save();
-        this.modalVisible = false;
-        this.getList();
-      } catch (error) {
-        console.error('保存失败:', error);
-        this.$Message.error('保存失败: ' + error.message);
-      }
-    },
-
-    // 取消保存
-    handleCancel() {
-      this.modalVisible = false;
-    },
-
     // 删除数据
     handleDelete(row) {
       this.$Modal.confirm({
@@ -667,6 +436,11 @@ export default {
         onOk: async () => {
           try {
             const item = this.$leancloud.Object.createWithoutData('movieData', row.objectId);
+            // 设置公共读写权限
+            const acl = new this.$leancloud.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            item.setACL(acl);
             await item.destroy();
             this.$Message.success('删除成功');
             this.getList();
@@ -688,6 +462,13 @@ export default {
             const objects = this.selectedRows.map(row =>
               this.$leancloud.Object.createWithoutData('movieData', row.objectId)
             );
+            // 为每个对象设置公共读写权限
+            objects.forEach(obj => {
+              const acl = new this.$leancloud.ACL();
+              acl.setPublicReadAccess(true);
+              acl.setPublicWriteAccess(true);
+              obj.setACL(acl);
+            });
             await this.$leancloud.Object.destroyAll(objects);
             this.$Message.success('批量删除成功');
             this.getList();
@@ -697,24 +478,7 @@ export default {
           }
         }
       });
-    },
-
-    // 验证是否为有效的图片URL
-    isValidImageUrl(url) {
-      if (!url) return false;
-
-      // 检查是否为有效的URL格式
-      try {
-        new URL(url);
-      } catch (e) {
-        return false;
-      }
-
-      // 检查URL是否以常见的图片扩展名结尾
-      const imageExtensions = /\.(jpeg|jpg|png|gif|bmp|webp|svg)$/i;
-      return imageExtensions.test(url);
-    },
-
+    }
   }
 }
 </script>

@@ -12,7 +12,8 @@
         <span class="subtitle-count-value">{{ subtitleCount }}条</span>
       </div>
       <div class="subtitle-preview-container">
-        <pre class="subtitle-content">{{ subtitleData.movieSubtitleFiles }}</pre>
+        <pre v-if="subtitleContent" class="subtitle-content">{{ subtitleContent }}</pre>
+        <div v-else class="info-text">正在加载字幕内容...</div>
       </div>
     </div>
     <template #footer>
@@ -34,6 +35,11 @@ export default {
       default: () => ({})
     }
   },
+  data() {
+    return {
+      subtitleContent: ''
+    }
+  },
   computed: {
     visible: {
       get() {
@@ -45,7 +51,10 @@ export default {
     },
     subtitleCount() {
       // 计算字幕条数，兼容不同数据结构
-      if (this.subtitleData && this.subtitleData.subtitleData) {
+      if (this.subtitleContent) {
+        return this.subtitleContent ?
+          this.subtitleContent.split('\n\n').filter(item => item.trim() !== '').length : 0;
+      } else if (this.subtitleData && this.subtitleData.subtitleData) {
         return this.subtitleData.subtitleData.length;
       } else if (this.subtitleData && this.subtitleData.movieSubtitleFiles) {
         // 通过分割字幕文件内容计算条数
@@ -55,10 +64,48 @@ export default {
       return 0;
     }
   },
+  watch: {
+    subtitleData: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadSubtitleContent();
+        }
+      },
+      immediate: true
+    }
+  },
   methods: {
     handleCancel() {
       this.visible = false;
       this.$emit('close');
+    },
+    async loadSubtitleContent() {
+      if (!this.subtitleData || !this.subtitleData.movieSubtitleFiles) {
+        this.subtitleContent = '';
+        return;
+      }
+
+      // 如果movieSubtitleFiles是URL，则需要获取内容
+      if (this.isUrl(this.subtitleData.movieSubtitleFiles)) {
+        try {
+          const response = await fetch(this.subtitleData.movieSubtitleFiles);
+          this.subtitleContent = await response.text();
+        } catch (error) {
+          console.error('获取字幕内容失败:', error);
+          this.subtitleContent = '获取字幕内容失败: ' + error.message;
+        }
+      } else {
+        // 如果不是URL，直接显示内容
+        this.subtitleContent = this.subtitleData.movieSubtitleFiles;
+      }
+    },
+    isUrl(string) {
+      try {
+        new URL(string);
+        return true;
+      } catch (_) {
+        return false;
+      }
     }
   }
 };
